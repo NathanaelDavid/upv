@@ -20,10 +20,10 @@ class MyApp extends StatelessWidget {
 
 class MarketingPage extends StatelessWidget {
   final List<String> imagePaths = [
-    'gambar/gambar_1.jpeg',
-    'gambar/gambar_2.jpeg',
-    'gambar/gambar_3.jpeg',
-    'gambar/gambar_4.jpeg',
+    'lib/gambar/gambar_1.jpeg',
+    'lib/gambar/gambar_2.jpeg',
+    'lib/gambar/gambar_3.jpeg',
+    'lib/gambar/gambar_4.jpeg',
   ];
 
   final List<Map<String, dynamic>> currencies = [

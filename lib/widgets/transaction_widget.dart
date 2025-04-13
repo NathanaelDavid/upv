@@ -19,9 +19,10 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   final TextEditingController _jumlahController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
   final TextEditingController _nominalController = TextEditingController();
+  final NumberFormat _formatter = NumberFormat.currency(locale: "id_id");
 
-  bool _isJual = false;
   String? _editingId;
+  String _kodeTransaksi = 'Beli';
 
   @override
   void initState() {
@@ -48,7 +49,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
       Map<String, dynamic> transaksiData = {
         "timestamp": DateTime.parse(_tanggalController.text),
         "kode_mata_uang": _mataUangController.text,
-        "kode_transaksi": _isJual ? "Jual" : "Beli",
+        "kode_transaksi": _kodeTransaksi,
         "jumlah_barang": double.parse(_jumlahController.text),
         "harga": double.parse(_rateController.text),
         "total_nominal": double.parse(_nominalController.text),
@@ -76,8 +77,8 @@ class _TransactionWidgetState extends State<TransactionWidget> {
       _mataUangController.text = transaksi.kodeMataUang;
       _jumlahController.text = transaksi.jumlahBarang.toString();
       _rateController.text = transaksi.harga.toString();
-      _nominalController.text = transaksi.totalNominal.toString();
-      _isJual = transaksi.kodeTransaksi == "Jual";
+      _nominalController.text = _formatter.format(transaksi.totalNominal);
+      _kodeTransaksi = transaksi.kodeTransaksi;
       _editingId = transaksi.id;
     });
   }
@@ -97,7 +98,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
     _jumlahController.clear();
     _rateController.clear();
     _nominalController.clear();
-    _isJual = false;
+    _kodeTransaksi = 'Beli';
     _editingId = null;
   }
 
@@ -119,7 +120,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
     final jumlah = double.tryParse(_jumlahController.text) ?? 0;
     final rate = double.tryParse(_rateController.text) ?? 0;
     final nominal = jumlah * rate;
-    _nominalController.text = nominal.toStringAsFixed(2);
+    _nominalController.text = _formatter.format(nominal);
   }
 
   @override
@@ -135,6 +136,25 @@ class _TransactionWidgetState extends State<TransactionWidget> {
             onTap: () => _selectDate(context),
             decoration: InputDecoration(
                 labelText: 'Tanggal', border: OutlineInputBorder()),
+          ),
+          SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _kodeTransaksi,
+            decoration: InputDecoration(
+              labelText: 'Tipe Transaksi',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              DropdownMenuItem(value: 'Beli', child: Text('Beli')),
+              DropdownMenuItem(value: 'Jual', child: Text('Jual')),
+            ],
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _kodeTransaksi = newValue;
+                });
+              }
+            },
           ),
           SizedBox(height: 8),
           TextField(
@@ -164,15 +184,6 @@ class _TransactionWidgetState extends State<TransactionWidget> {
             readOnly: true,
             decoration: InputDecoration(
                 labelText: 'Nominal Transaksi', border: OutlineInputBorder()),
-          ),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              Checkbox(
-                  value: _isJual,
-                  onChanged: (val) => setState(() => _isJual = val!)),
-              Text('Jual'),
-            ],
           ),
           SizedBox(height: 8),
           ElevatedButton(

@@ -84,7 +84,7 @@ class NavigationButtons extends StatelessWidget {
                     ? const Color.fromARGB(255, 245, 244, 255)
                     : null,
               ),
-              child: const Text('dashboard'),
+              child: const Text('Dashboard'),
             ),
           ),
         ],
