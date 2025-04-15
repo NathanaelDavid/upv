@@ -3,10 +3,10 @@ import '../widgets/currency_widget.dart';
 
 class CompanyProfilePage extends StatelessWidget {
   final List<String> bannerImages = [
-    'gambar/image_1.jpg',
-    'gambar/image_2.jpg',
-    'gambar/image_3.jpg',
-    'gambar/image_4.jpg',
+    'lib/gambar/image_1.jpg',
+    'lib/gambar/image_2.jpg',
+    'lib/gambar/image_3.jpg',
+    'lib/gambar/image_4.jpg',
   ];
 
   CompanyProfilePage({super.key});
@@ -114,7 +114,7 @@ class CompanyProfilePage extends StatelessWidget {
         ),
         const SizedBox(height: 8.0),
         const Text(
-          'Solusi Terbaik untuk transaksi mata uang asing',
+          'Solusi terbaik untuk transaksi mata uang asing',
           style: TextStyle(
             fontSize: 16.0,
             color: Color.fromARGB(255, 39, 39, 39),

@@ -44,12 +44,31 @@ class _AppState extends State<App> {
         ),
         backgroundColor: const Color.fromARGB(255, 48, 37, 201),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle),
-            onPressed: () {
-              // Aksi untuk profil pengguna
+          PopupMenuButton<String>(
+            icon: const Icon(
+              Icons.account_circle,
+              color: Colors.white,
+            ),
+            position: PopupMenuPosition.under,
+            onSelected: (value) async {
+              if (value == 'logout') {
+                await FirebaseAuth.instance.signOut();
+              }
             },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 8),
+                    Text('Logout'),
+                  ],
+                ),
+              ),
+            ],
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: StreamBuilder<User?>(

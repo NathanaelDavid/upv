@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import '../models/chat_models.dart';
 
 class ChatWidget extends StatefulWidget {
-  final String username;
+  final ChatPublic chat;
+  final Function(String) onSendMessage;
 
-  const ChatWidget({super.key, required this.username});
+  const ChatWidget({
+    super.key, 
+    required this.chat,
+    required this.onSendMessage,
+  });
 
   @override
   _ChatWidgetState createState() => _ChatWidgetState();
@@ -11,105 +17,83 @@ class ChatWidget extends StatefulWidget {
 
 class _ChatWidgetState extends State<ChatWidget> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, String>> _messages = [];
 
-  void _sendMessage(String message) {
-    setState(() {
-      _messages.add({
-        'sender': 'admin',
-        'message': message,
-      });
-    });
-    _messageController.clear();
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
   }
 
-  void _receiveMessage(String message) {
-    setState(() {
-      _messages.add({
-        'sender': 'user',
-        'message': message,
-      });
-    });
+  void _sendMessage(String message) {
+    if (message.isNotEmpty) {
+      widget.onSendMessage(message);
+      _messageController.clear();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Chat dengan ${widget.username}'),
-        backgroundColor: const Color.fromARGB(255, 245, 244, 255),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isAdmin = message['sender'] == 'admin';
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            itemCount: widget.chat.daftarPesan.length,
+            itemBuilder: (context, index) {
+              final message = widget.chat.daftarPesan[index];
+              final isAdmin = !message.isPelanggan;
 
-                return Align(
-                  alignment:
-                      isAdmin ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isAdmin
-                          ? const Color.fromARGB(100, 48, 37, 201)
-                          : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      message['message'] ?? '',
-                      style: TextStyle(
-                        color: isAdmin ? Colors.white : Colors.black,
-                      ),
-                    ),
+              return Align(
+                alignment: isAdmin ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isAdmin
+                        ? const Color.fromARGB(100, 48, 37, 201)
+                        : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Ketik pesan...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                  child: Text(
+                    message.pesan,
+                    style: TextStyle(
+                      color: isAdmin ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
-                SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_messageController.text.isNotEmpty) {
-                      _sendMessage(_messageController.text);
-                      // Simulasikan pesan dari pengguna setelah admin mengirim pesan.
-                      Future.delayed(Duration(seconds: 1), () {
-                        _receiveMessage('Balasan dari pengguna.');
-                      });
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 255, 227, 45),
-                    shape: RoundedRectangleBorder(
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _messageController,
+                  decoration: InputDecoration(
+                    hintText: 'Type a message...',
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: Icon(Icons.send, color: Colors.white),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () => _sendMessage(_messageController.text),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 255, 227, 45),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Icon(Icons.send, color: Colors.white),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

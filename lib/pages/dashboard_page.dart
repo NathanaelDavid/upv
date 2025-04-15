@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 class DashboardPage extends StatelessWidget {
-  final List<String> imagePaths = [
-    'gambar/gambar_1.jpeg',
-    'gambar/gambar_2.jpeg',
-    'gambar/gambar_3.jpeg',
-    'gambar/gambar_4.jpeg',
+  final List<String> _imagePaths = [
+    'lib/gambar/gambar_1.jpeg',
+    'lib/gambar/gambar_2.jpeg',
+    'lib/gambar/gambar_3.jpeg',
+    'lib/gambar/gambar_4.jpeg',
   ];
 
   final List<Map<String, dynamic>> currencies = [
@@ -156,7 +156,7 @@ class DashboardPage extends StatelessWidget {
                 crossAxisSpacing: 8.0,
                 mainAxisSpacing: 8.0,
               ),
-              itemCount: imagePaths.length,
+              itemCount: _imagePaths.length,
               itemBuilder: (context, index) {
                 return Card(
                   elevation: 4,
@@ -166,7 +166,7 @@ class DashboardPage extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12.0),
                     child: Image.asset(
-                      imagePaths[index],
+                      _imagePaths[index],
                       fit: BoxFit.cover,
                     ),
                   ),

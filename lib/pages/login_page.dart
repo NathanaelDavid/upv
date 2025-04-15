@@ -173,7 +173,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 10.0),
                 const Text(
-                  'Solusi Terbaik untuk mencari mata uang asing',
+                  'Solusi terbaik untuk mencari mata uang asing',
                   style: TextStyle(
                     fontSize: 16.0,
                     color: Colors.black54,
@@ -208,6 +208,9 @@ class _LoginPageState extends State<LoginPage> {
                               border: OutlineInputBorder(),
                               prefixIcon: Icon(Icons.lock),
                             ),
+                            onSubmitted: (value) {
+                              _login(context);
+                            },
                           ),
                           const SizedBox(height: 30.0),
                           SizedBox(
