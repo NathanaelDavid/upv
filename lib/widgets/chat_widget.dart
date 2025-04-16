@@ -1,99 +1,94 @@
 import 'package:flutter/material.dart';
-import '../models/chat_models.dart';
+import 'package:upv/models/chat_models.dart';
 
 class ChatWidget extends StatefulWidget {
   final ChatPublic chat;
   final Function(String) onSendMessage;
+  final String username;
 
   const ChatWidget({
-    super.key, 
+    super.key,
     required this.chat,
     required this.onSendMessage,
+    required this.username,
   });
 
   @override
-  _ChatWidgetState createState() => _ChatWidgetState();
+  State<ChatWidget> createState() => _ChatWidgetState();
 }
 
 class _ChatWidgetState extends State<ChatWidget> {
   final TextEditingController _messageController = TextEditingController();
 
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
-  }
-
-  void _sendMessage(String message) {
-    if (message.isNotEmpty) {
-      widget.onSendMessage(message);
-      _messageController.clear();
-    }
+  void _send() {
+    final text = _messageController.text;
+    if (text.trim().isEmpty) return;
+    widget.onSendMessage(text);
+    setState(() {
+      widget.chat.daftarPesan.add(
+        MessagePublic(
+            id: UniqueKey().toString(), pesan: text, isPelanggan: true),
+      );
+    });
+    _messageController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            itemCount: widget.chat.daftarPesan.length,
-            itemBuilder: (context, index) {
-              final message = widget.chat.daftarPesan[index];
-              final isAdmin = !message.isPelanggan;
-
-              return Align(
-                alignment: isAdmin ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isAdmin
-                        ? const Color.fromARGB(100, 48, 37, 201)
-                        : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    message.pesan,
-                    style: TextStyle(
-                      color: isAdmin ? Colors.white : Colors.black,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.chat.nama),
+        backgroundColor: const Color.fromARGB(255, 48, 37, 201),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: widget.chat.daftarPesan.length,
+              itemBuilder: (context, index) {
+                final msg = widget.chat.daftarPesan[index];
+                return Align(
+                  alignment: msg.isPelanggan
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4.0),
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color:
+                          msg.isPelanggan ? Colors.blue[100] : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10.0),
                     ),
+                    child: Text(msg.pesan),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _messageController,
-                  decoration: InputDecoration(
-                    hintText: 'Type a message...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+          const Divider(height: 1.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: const InputDecoration(
+                      hintText: 'Ketik pesan...',
                     ),
+                    onSubmitted: (_) => _send(),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () => _sendMessage(_messageController.text),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 255, 227, 45),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Icon(Icons.send, color: Colors.white),
-              ),
-            ],
-          ),
-        ),
-      ],
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _send,
+                )
+              ],
+            ),
+          )
+        ],
+      ),
     );
   }
 }

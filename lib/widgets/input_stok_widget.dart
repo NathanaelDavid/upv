@@ -3,7 +3,8 @@ import '../models/models_stok.dart';
 import '../util/stok_service.dart';
 
 class InputStokWidget extends StatefulWidget {
-  const InputStokWidget({super.key});
+  final StockPublic? existingStock;
+  const InputStokWidget({super.key, this.existingStock});
 
   @override
   State<InputStokWidget> createState() => _InputStokWidgetState();
@@ -18,6 +19,17 @@ class _InputStokWidgetState extends State<InputStokWidget> {
   final StokService _stokService = StokService();
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.existingStock != null) {
+      _kodeMataUangController.text = widget.existingStock!.kodeMataUang;
+      _jumlahStokController.text = widget.existingStock!.jumlahStok.toString();
+      _hargaBeliController.text = widget.existingStock!.hargaBeli.toString();
+      _hargaJualController.text = widget.existingStock!.hargaJual.toString();
+    }
+  }
+
+  @override
   void dispose() {
     _kodeMataUangController.dispose();
     _jumlahStokController.dispose();
@@ -29,33 +41,49 @@ class _InputStokWidgetState extends State<InputStokWidget> {
   void _submitData() async {
     if (_formKey.currentState!.validate()) {
       final newStock = StockCreate(
-        kodeMataUang: _kodeMataUangController.text,
-        jumlahStok: double.parse(_jumlahStokController.text),
-        hargaBeli: double.parse(_hargaBeliController.text),
-        hargaJual: double.parse(_hargaJualController.text),
+        kodeMataUang: _kodeMataUangController.text.trim(),
+        jumlahStok: double.tryParse(_jumlahStokController.text.trim()) ?? 0.0,
+        hargaBeli: double.tryParse(_hargaBeliController.text.trim()) ?? 0.0,
+        hargaJual: double.tryParse(_hargaJualController.text.trim()) ?? 0.0,
       );
 
       try {
-        await _stokService.createStock(newStock);
-
-        _formKey.currentState!.reset();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Stok berhasil ditambahkan!')),
-        );
-        setState(() {});
+        if (widget.existingStock == null) {
+          await _stokService.createStock(newStock);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Stok berhasil ditambahkan!')),
+          );
+        } else {
+          await _stokService.updateStock(widget.existingStock!.id, newStock);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Stok berhasil diperbarui!')),
+          );
+        }
+        Navigator.pop(context);
       } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menambah stok: $error')),
+          SnackBar(content: Text('Operasi gagal: $error')),
         );
       }
     }
   }
 
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Input Stok')),
-      body: Padding(
+      appBar: AppBar(
+        title: Text(widget.existingStock == null ? 'Tambah Stok' : 'Edit Stok'),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
@@ -63,52 +91,54 @@ class _InputStokWidgetState extends State<InputStokWidget> {
             children: [
               TextFormField(
                 controller: _kodeMataUangController,
-                decoration: const InputDecoration(labelText: 'Kode Mata Uang'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Kode mata uang tidak boleh kosong';
-                  }
-                  return null;
-                },
+                decoration: _inputDecoration('Kode Mata Uang'),
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Tidak boleh kosong'
+                    : null,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _jumlahStokController,
-                decoration: const InputDecoration(labelText: 'Jumlah Stok'),
+                decoration: _inputDecoration('Jumlah Stok'),
                 keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Jumlah stok tidak boleh kosong';
-                  }
-                  return null;
-                },
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Tidak boleh kosong'
+                    : null,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _hargaBeliController,
-                decoration: const InputDecoration(labelText: 'Harga Beli'),
+                decoration: _inputDecoration('Harga Beli'),
                 keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Harga beli tidak boleh kosong';
-                  }
-                  return null;
-                },
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Tidak boleh kosong'
+                    : null,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _hargaJualController,
-                decoration: const InputDecoration(labelText: 'Harga Jual'),
+                decoration: _inputDecoration('Harga Jual'),
                 keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Harga jual tidak boleh kosong';
-                  }
-                  return null;
-                },
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Tidak boleh kosong'
+                    : null,
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submitData,
-                child: const Text('Tambah Stok'),
-              ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submitData,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(widget.existingStock == null
+                      ? 'Tambah Stok'
+                      : 'Update Stok'),
+                ),
+              )
             ],
           ),
         ),

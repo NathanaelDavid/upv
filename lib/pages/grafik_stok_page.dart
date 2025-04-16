@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/stok_widget.dart';
+import '../widgets/kurs_stok_widget.dart';
 import '../widgets/input_stok_widget.dart';
 
 class GrafikStokPage extends StatelessWidget {
@@ -32,7 +32,7 @@ class GrafikStokPage extends StatelessWidget {
             flex: 3,
             child: Padding(
               padding: EdgeInsets.all(16.0),
-              child: StokWidget(),
+              child: KursStockWidget(),
             ),
           ),
         ],

@@ -21,6 +21,7 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _loadChats();
+
     // Start polling every 10 seconds
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       _loadChats();
@@ -37,7 +38,6 @@ class _ChatPageState extends State<ChatPage> {
     final chats = await _chatService.getChats();
     setState(() {
       _chats = chats;
-      // If there's a selected chat, update it with the new data
       if (_selectedChat != null) {
         _selectedChat = chats.firstWhere(
           (chat) => chat.id == _selectedChat!.id,
@@ -47,12 +47,18 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  void _handleChatTap(ChatPublic chat) {
+    setState(() {
+      _selectedChat = chat;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Row(
         children: [
-          // Left side: Chat list
+          // Chat list
           Expanded(
             flex: 2,
             child: Container(
@@ -62,13 +68,13 @@ class _ChatPageState extends State<ChatPage> {
                 itemBuilder: (context, index) {
                   final chat = _chats[index];
                   final isSelected = _selectedChat?.id == chat.id;
-                  final lastMessage = chat.daftarPesan.isNotEmpty 
-                      ? chat.daftarPesan.last 
+                  final lastMessage = chat.daftarPesan.isNotEmpty
+                      ? chat.daftarPesan.last
                       : null;
 
                   return ListTile(
                     selected: isSelected,
-                    selectedTileColor: Colors.blue,
+                    selectedTileColor: Colors.blue.withOpacity(0.2),
                     leading: const CircleAvatar(
                       child: Icon(Icons.person),
                     ),
@@ -78,51 +84,52 @@ class _ChatPageState extends State<ChatPage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    onTap: () {
-                      setState(() {
-                        _selectedChat = chat;
-                      });
-                    },
+                    onTap: () => _handleChatTap(chat),
                   );
                 },
               ),
             ),
           ),
 
-          // Right side: Current chat
+          // Chat detail
           Expanded(
             flex: 3,
             child: Container(
               padding: const EdgeInsets.all(16.0),
               color: const Color.fromARGB(255, 245, 244, 255),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _selectedChat != null 
-                        ? 'Chat dengan ${_selectedChat!.nama}'
-                        : 'Pilih chat untuk memulai',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: _selectedChat != null
-                        ? ChatWidget(
-                            chat: _selectedChat!,
-                            onSendMessage: (message) async {
-                              // TODO: Implement sending message to backend
-                              await _loadChats(); // Refresh chats after sending
-                            },
-                          )
-                        : const Center(
-                            child: Text('Pilih chat untuk memulai'),
+              child: _selectedChat == null
+                  ? const Center(
+                      child: Text(
+                        'Pilih chat untuk memulai',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Chat dengan ${_selectedChat!.nama}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                  ),
-                ],
-              ),
+                        ),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: ChatWidget(
+                            chat: _selectedChat!,
+                            username: _selectedChat!.nama,
+                            onSendMessage: (message) async {
+                              // TODO: Tambahkan logika simpan ke backend di sini
+                              print('Pesan baru: $message');
+
+                              // Refresh ulang
+                              await _loadChats();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],
