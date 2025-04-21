@@ -1,34 +1,77 @@
 import 'package:flutter/material.dart';
 import '../util/stok_service.dart';
+import '../util/transaksi_service.dart'; // Tambahkan jika belum ada
 import '../models/models_stok.dart';
+import '../models/transaksi_models.dart';
 
 class KursStockWidget extends StatefulWidget {
   const KursStockWidget({super.key});
 
   @override
-  State<KursStockWidget> createState() => _StockWidgetState();
+  State<KursStockWidget> createState() => _KursStockWidgetState();
 }
 
-class _StockWidgetState extends State<KursStockWidget> {
-  final StokService _stockService = StokService(); // Perbaiki nama class
-  List<StockPublic> _stocks = [];
+class _KursStockWidgetState extends State<KursStockWidget> {
+  final StokService _stockService = StokService();
+  final TransaksiService _transaksiService = TransaksiService(); // Tambahkan
+  Map<String, StockPublic> _finalStockMap = {};
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadStockData();
+    _loadData();
   }
 
-  Future<void> _loadStockData() async {
+  Future<void> _loadData() async {
     try {
-      final data = await _stockService.getAllStocks();
+      final stockData = await _stockService.getAllStocks();
+      final transaksiData = await _transaksiService.getAllTransaksi();
+
+      // Gabungkan berdasarkan kode mata uang
+      Map<String, StockPublic> groupedStock = {};
+
+      for (var stock in stockData.data) {
+        if (!groupedStock.containsKey(stock.kodeMataUang) ||
+            stock.tanggal
+                .toDate()
+                .isAfter(groupedStock[stock.kodeMataUang]!.tanggal.toDate())) {
+          groupedStock[stock.kodeMataUang] = stock;
+        }
+      }
+
+      // Proses transaksi: beli tambah stok, jual kurangi stok
+      for (var transaksi in transaksiData) {
+        final kode = transaksi.kodeMataUang;
+        final jumlah = transaksi.jumlah;
+
+        if (groupedStock.containsKey(kode)) {
+          var existingStock = groupedStock[kode]!;
+
+          double updatedJumlah = existingStock.jumlahStok;
+          if (transaksi.jenis == 'beli') {
+            updatedJumlah += jumlah;
+          } else if (transaksi.jenis == 'jual') {
+            updatedJumlah -= jumlah;
+          }
+
+          groupedStock[kode] = StockPublic(
+            id: existingStock.id,
+            kodeMataUang: existingStock.kodeMataUang,
+            jumlahStok: updatedJumlah,
+            hargaBeli: existingStock.hargaBeli,
+            hargaJual: existingStock.hargaJual,
+            tanggal: existingStock.tanggal,
+          );
+        }
+      }
+
       setState(() {
-        _stocks = data.data; // akses list dari StocksPublic
+        _finalStockMap = groupedStock;
         _loading = false;
       });
     } catch (e) {
-      print('Error loading stocks: $e');
+      print('Error loading data: $e');
       setState(() {
         _loading = false;
       });
@@ -54,13 +97,13 @@ class _StockWidgetState extends State<KursStockWidget> {
                   DataColumn(label: Text('Beli')),
                   DataColumn(label: Text('Jual')),
                 ],
-                rows: _stocks.map((stock) {
+                rows: _finalStockMap.values.map((stock) {
                   return DataRow(
                     cells: [
                       DataCell(Text(stock.kodeMataUang)),
-                      DataCell(Text(stock.jumlahStok.toString())),
-                      DataCell(Text(stock.hargaBeli.toString())),
-                      DataCell(Text(stock.hargaJual.toString())),
+                      DataCell(Text(stock.jumlahStok.toStringAsFixed(2))),
+                      DataCell(Text(stock.hargaBeli.toStringAsFixed(2))),
+                      DataCell(Text(stock.hargaJual.toStringAsFixed(2))),
                     ],
                   );
                 }).toList(),

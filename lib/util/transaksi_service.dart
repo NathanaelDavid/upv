@@ -5,8 +5,8 @@ class TransaksiService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String collectionName = "transaksi";
 
-  // Ambil semua transaksi dari Firestore
-  Future<List<TransaksiPublic>> getAllTransaksis() async {
+  /// Ambil semua transaksi dari Firestore (terurut dari terbaru)
+  Future<List<TransaksiPublic>> getAllTransaksi() async {
     try {
       QuerySnapshot snapshot = await _firestore
           .collection(collectionName)
@@ -20,29 +20,28 @@ class TransaksiService {
     }
   }
 
-  // Tambah transaksi baru ke Firestore
+  /// Tambah transaksi baru ke Firestore
   Future<void> createTransaksi(Map<String, dynamic> transaksi) async {
     try {
-      transaksi['timestamp'] =
-          FieldValue.serverTimestamp(); // Tambahkan timestamp otomatis
+      transaksi['timestamp'] = FieldValue.serverTimestamp();
       await _firestore.collection(collectionName).add(transaksi);
     } catch (e) {
       throw Exception("Error creating transaksi: $e");
     }
   }
 
-  // Update transaksi yang ada
+  /// Update transaksi yang ada
   Future<void> updateTransaksi(
       String id, Map<String, dynamic> transaksi) async {
     try {
-      transaksi['timestamp'] = FieldValue.serverTimestamp(); // Update timestamp
+      transaksi['timestamp'] = FieldValue.serverTimestamp();
       await _firestore.collection(collectionName).doc(id).update(transaksi);
     } catch (e) {
       throw Exception("Error updating transaksi: $e");
     }
   }
 
-  // Hapus transaksi dari Firestore
+  /// Hapus transaksi dari Firestore
   Future<void> deleteTransaksi(String id) async {
     try {
       await _firestore.collection(collectionName).doc(id).delete();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../util/stok_service.dart';
 import '../models/models_stok.dart';
 
@@ -29,6 +30,8 @@ class _StokWidgetState extends State<StokWidget> {
     final hargaJualController =
         TextEditingController(text: stock?.hargaJual.toString() ?? '');
 
+    Timestamp selectedTimestamp = stock?.tanggal ?? Timestamp.now();
+
     showDialog(
       context: context,
       builder: (context) {
@@ -53,6 +56,30 @@ class _StokWidgetState extends State<StokWidget> {
                     controller: hargaJualController,
                     decoration: InputDecoration(labelText: 'Harga Jual'),
                     keyboardType: TextInputType.number),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                        "Tanggal: ${selectedTimestamp.toDate().toLocal().toString().split(' ')[0]}"),
+                    const Spacer(),
+                    TextButton(
+                      child: Text("Pilih Tanggal"),
+                      onPressed: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: selectedTimestamp.toDate(),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (pickedDate != null) {
+                          setState(() {
+                            selectedTimestamp = Timestamp.fromDate(pickedDate);
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                )
               ],
             ),
           ),
@@ -78,6 +105,7 @@ class _StokWidgetState extends State<StokWidget> {
                   jumlahStok: double.tryParse(jumlahController.text) ?? 0,
                   hargaBeli: double.tryParse(hargaBeliController.text) ?? 0,
                   hargaJual: double.tryParse(hargaJualController.text) ?? 0,
+                  tanggal: selectedTimestamp,
                 );
 
                 if (stock == null) {
@@ -86,6 +114,7 @@ class _StokWidgetState extends State<StokWidget> {
                     jumlahStok: newStock.jumlahStok,
                     hargaBeli: newStock.hargaBeli,
                     hargaJual: newStock.hargaJual,
+                    tanggal: newStock.tanggal,
                   ));
                 } else {
                   await _stokService.updateStock(
@@ -95,6 +124,7 @@ class _StokWidgetState extends State<StokWidget> {
                       jumlahStok: newStock.jumlahStok,
                       hargaBeli: newStock.hargaBeli,
                       hargaJual: newStock.hargaJual,
+                      tanggal: newStock.tanggal,
                     ),
                   );
                 }
@@ -129,7 +159,8 @@ class _StokWidgetState extends State<StokWidget> {
               return ListTile(
                 title: Text('Mata Uang: ${stock.kodeMataUang}'),
                 subtitle: Text(
-                    'Jumlah: ${stock.jumlahStok} | Harga Beli: ${stock.hargaBeli} | Harga Jual: ${stock.hargaJual}'),
+                    'Jumlah: ${stock.jumlahStok} | Beli: ${stock.hargaBeli} | Jual: ${stock.hargaJual}\nTanggal: ${stock.tanggal.toDate().toLocal().toString().split(' ')[0]}'),
+                onTap: () => _showStockForm(stock: stock),
               );
             },
           );

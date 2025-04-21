@@ -5,114 +5,97 @@ class StokService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collectionName = 'stocks';
 
-  /// Mengambil semua data stok dari Firestore
   Future<StocksPublic> getAllStocks() async {
-    try {
-      final snapshot = await _firestore.collection(_collectionName).get();
-      final stocks = snapshot.docs.map((doc) {
-        return StockPublic.fromFirestore(doc);
-      }).toList();
-      return StocksPublic(data: stocks);
-    } catch (e) {
-      throw Exception("Error fetching stocks: $e");
-    }
+    final snapshot = await _firestore.collection(_collectionName).get();
+    final stocks =
+        snapshot.docs.map((doc) => StockPublic.fromFirestore(doc)).toList();
+    return StocksPublic(data: stocks);
   }
 
-  /// Mengambil satu data stok berdasarkan ID dokumen
   Future<StockPublic?> getStockById(String id) async {
-    try {
-      final doc = await _firestore.collection(_collectionName).doc(id).get();
-      if (doc.exists) {
-        return StockPublic.fromFirestore(doc);
-      }
-      return null;
-    } catch (e) {
-      throw Exception("Error fetching stock by ID: $e");
-    }
+    final doc = await _firestore.collection(_collectionName).doc(id).get();
+    return doc.exists ? StockPublic.fromFirestore(doc) : null;
   }
 
-  /// Mengambil data stok berdasarkan kode mata uang (unik)
   Future<StockPublic?> getStockByKode(String kodeMataUang) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection(_collectionName)
-          .where('kodeMataUang', isEqualTo: kodeMataUang)
-          .limit(1)
-          .get();
+    final querySnapshot = await _firestore
+        .collection(_collectionName)
+        .where('kodeMataUang', isEqualTo: kodeMataUang)
+        .limit(1)
+        .get();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        return StockPublic.fromFirestore(querySnapshot.docs.first);
-      }
-      return null;
-    } catch (e) {
-      throw Exception("Error fetching stock by kodeMataUang: $e");
-    }
+    return querySnapshot.docs.isNotEmpty
+        ? StockPublic.fromFirestore(querySnapshot.docs.first)
+        : null;
   }
 
-  /// Menambahkan data stok baru ke Firestore
   Future<void> createStock(StockCreate stock) async {
-    try {
-      await _firestore.collection(_collectionName).add(stock.toMap());
-    } catch (e) {
-      throw Exception("Error creating stock: $e");
-    }
+    await _firestore.collection(_collectionName).add(stock.toMap());
   }
 
-  /// Memperbarui data stok berdasarkan ID dokumen
   Future<void> updateStock(String id, StockCreate stock) async {
-    try {
-      await _firestore
-          .collection(_collectionName)
-          .doc(id)
-          .update(stock.toMap());
-    } catch (e) {
-      throw Exception("Error updating stock: $e");
-    }
+    await _firestore.collection(_collectionName).doc(id).update(stock.toMap());
   }
 
-  /// Menghapus data stok berdasarkan ID dokumen
   Future<void> deleteStock(String id) async {
-    try {
-      await _firestore.collection(_collectionName).doc(id).delete();
-    } catch (e) {
-      throw Exception("Error deleting stock: $e");
+    await _firestore.collection(_collectionName).doc(id).delete();
+  }
+
+  Future<void> createOrUpdateStock(StockCreate newStock) async {
+    final existingStock = await getStockByKode(newStock.kodeMataUang);
+    if (existingStock == null) {
+      await createStock(newStock);
+    } else {
+      final double totalStokBaru =
+          existingStock.jumlahStok + newStock.jumlahStok;
+      final double avgHargaBeli =
+          ((existingStock.hargaBeli * existingStock.jumlahStok) +
+                  (newStock.hargaBeli * newStock.jumlahStok)) /
+              totalStokBaru;
+      final double avgHargaJual =
+          ((existingStock.hargaJual * existingStock.jumlahStok) +
+                  (newStock.hargaJual * newStock.jumlahStok)) /
+              totalStokBaru;
+
+      final updated = StockCreate(
+        kodeMataUang: newStock.kodeMataUang,
+        jumlahStok: totalStokBaru,
+        hargaBeli: avgHargaBeli,
+        hargaJual: avgHargaJual,
+        tanggal: newStock.tanggal,
+      );
+      await updateStock(existingStock.id, updated);
     }
   }
 
-  /// Menambahkan atau memperbarui data stok berdasarkan kode mata uang
-  Future<void> createOrUpdateStock(StockCreate newStock) async {
-    try {
-      final existingStock = await getStockByKode(newStock.kodeMataUang);
-
-      if (existingStock == null) {
-        // Tidak ada stok dengan kode tersebut, buat baru
-        await createStock(newStock);
-      } else {
-        // Update stok lama
-        final double totalStokBaru =
-            existingStock.jumlahStok + newStock.jumlahStok;
-
-        final double avgHargaBeli =
-            ((existingStock.hargaBeli * existingStock.jumlahStok) +
-                    (newStock.hargaBeli * newStock.jumlahStok)) /
-                totalStokBaru;
-
-        final double avgHargaJual =
-            ((existingStock.hargaJual * existingStock.jumlahStok) +
-                    (newStock.hargaJual * newStock.jumlahStok)) /
-                totalStokBaru;
-
-        final updatedStock = StockCreate(
-          kodeMataUang: newStock.kodeMataUang,
-          jumlahStok: totalStokBaru,
-          hargaBeli: avgHargaBeli,
-          hargaJual: avgHargaJual,
-        );
-
-        await updateStock(existingStock.id, updatedStock);
-      }
-    } catch (e) {
-      throw Exception("Error creating/updating stock: $e");
+  Future<void> updateStockAfterTransaction({
+    required String kodeMataUang,
+    required String tipeTransaksi,
+    required double jumlah,
+  }) async {
+    final existingStock = await getStockByKode(kodeMataUang);
+    if (existingStock == null) {
+      throw Exception("Mata uang tidak ditemukan saat update stok transaksi");
     }
+
+    double updatedJumlah = existingStock.jumlahStok;
+    if (tipeTransaksi == 'Beli') {
+      updatedJumlah += jumlah;
+    } else if (tipeTransaksi == 'Jual') {
+      if (jumlah > updatedJumlah) {
+        throw Exception("Stok tidak mencukupi untuk transaksi jual");
+      }
+      updatedJumlah -= jumlah;
+    }
+
+    final updated = StockCreate(
+      kodeMataUang: existingStock.kodeMataUang,
+      jumlahStok: updatedJumlah,
+      hargaBeli: existingStock.hargaBeli,
+      hargaJual: existingStock.hargaJual,
+      tanggal: existingStock.tanggal,
+    );
+
+    await updateStock(existingStock.id, updated);
   }
 }

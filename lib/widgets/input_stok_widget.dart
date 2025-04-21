@@ -1,146 +1,209 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/models_stok.dart';
 import '../util/stok_service.dart';
 
 class InputStokWidget extends StatefulWidget {
-  final StockPublic? existingStock;
-  const InputStokWidget({super.key, this.existingStock});
+  const InputStokWidget({super.key});
 
   @override
-  State<InputStokWidget> createState() => _InputStokWidgetState();
+  _InputStokWidgetState createState() => _InputStokWidgetState();
 }
 
 class _InputStokWidgetState extends State<InputStokWidget> {
-  final _formKey = GlobalKey<FormState>();
-  final _kodeMataUangController = TextEditingController();
-  final _jumlahStokController = TextEditingController();
-  final _hargaBeliController = TextEditingController();
-  final _hargaJualController = TextEditingController();
   final StokService _stokService = StokService();
+  final List<StockPublic> stokList = [];
+
+  final TextEditingController _tanggalController = TextEditingController();
+  final TextEditingController _kodeMataUangController = TextEditingController();
+  final TextEditingController _jumlahController = TextEditingController();
+  final TextEditingController _hargaBeliController = TextEditingController();
+  final TextEditingController _hargaJualController = TextEditingController();
+
+  String? _editingId;
 
   @override
   void initState() {
     super.initState();
-    if (widget.existingStock != null) {
-      _kodeMataUangController.text = widget.existingStock!.kodeMataUang;
-      _jumlahStokController.text = widget.existingStock!.jumlahStok.toString();
-      _hargaBeliController.text = widget.existingStock!.hargaBeli.toString();
-      _hargaJualController.text = widget.existingStock!.hargaJual.toString();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final data = await _stokService.getAllStocks();
+      setState(() {
+        stokList.clear();
+        stokList.addAll(data.data);
+      });
+    } catch (e) {
+      print("Fetch Error: $e");
     }
   }
 
-  @override
-  void dispose() {
-    _kodeMataUangController.dispose();
-    _jumlahStokController.dispose();
-    _hargaBeliController.dispose();
-    _hargaJualController.dispose();
-    super.dispose();
+  void _clearForm() {
+    _tanggalController.clear();
+    _kodeMataUangController.clear();
+    _jumlahController.clear();
+    _hargaBeliController.clear();
+    _hargaJualController.clear();
+    _editingId = null;
   }
 
-  void _submitData() async {
-    if (_formKey.currentState!.validate()) {
-      final newStock = StockCreate(
-        kodeMataUang: _kodeMataUangController.text.trim(),
-        jumlahStok: double.tryParse(_jumlahStokController.text.trim()) ?? 0.0,
-        hargaBeli: double.tryParse(_hargaBeliController.text.trim()) ?? 0.0,
-        hargaJual: double.tryParse(_hargaJualController.text.trim()) ?? 0.0,
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      _tanggalController.text = DateFormat('yyyy-MM-dd').format(picked);
+    }
+  }
+
+  Future<void> _addOrUpdateStok() async {
+    try {
+      final tanggal = _tanggalController.text;
+      final kodeMataUang = _kodeMataUangController.text;
+      final jumlah = double.tryParse(_jumlahController.text);
+      final hargaBeli = double.tryParse(_hargaBeliController.text);
+      final hargaJual = double.tryParse(_hargaJualController.text);
+
+      if (tanggal.isEmpty ||
+          kodeMataUang.isEmpty ||
+          jumlah == null ||
+          hargaBeli == null ||
+          hargaJual == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Semua field wajib diisi!')),
+        );
+        return;
+      }
+
+      final stock = StockCreate(
+        kodeMataUang: kodeMataUang,
+        jumlahStok: jumlah,
+        hargaBeli: hargaBeli,
+        hargaJual: hargaJual,
+        tanggal: Timestamp.fromDate(DateTime.parse(tanggal)),
       );
 
-      try {
-        if (widget.existingStock == null) {
-          await _stokService.createStock(newStock);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Stok berhasil ditambahkan!')),
-          );
-        } else {
-          await _stokService.updateStock(widget.existingStock!.id, newStock);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Stok berhasil diperbarui!')),
-          );
-        }
-        Navigator.pop(context);
-      } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Operasi gagal: $error')),
-        );
+      if (_editingId == null) {
+        await _stokService.createStock(stock);
+      } else {
+        await _stokService.updateStock(_editingId!, stock);
       }
+
+      await _fetchData();
+      _clearForm();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                _editingId == null ? 'Stok ditambahkan!' : 'Stok diperbarui!')),
+      );
+    } catch (e) {
+      print("Add/Update Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan: $e')),
+      );
     }
   }
 
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    );
+  void _editStok(StockPublic stok) {
+    setState(() {
+      _tanggalController.text =
+          DateFormat('yyyy-MM-dd').format(stok.tanggal.toDate());
+      _kodeMataUangController.text = stok.kodeMataUang;
+      _jumlahController.text = stok.jumlahStok.toString();
+      _hargaBeliController.text = stok.hargaBeli.toString();
+      _hargaJualController.text = stok.hargaJual.toString();
+      _editingId = stok.id;
+    });
+  }
+
+  void _deleteStok(String id) async {
+    try {
+      await _stokService.deleteStock(id);
+      await _fetchData();
+    } catch (e) {
+      print("Delete Error: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.existingStock == null ? 'Tambah Stok' : 'Edit Stok'),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
+      appBar: AppBar(title: const Text('Input Stok')),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _kodeMataUangController,
-                decoration: _inputDecoration('Kode Mata Uang'),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Tidak boleh kosong'
-                    : null,
+        child: Column(
+          children: [
+            TextField(
+              controller: _tanggalController,
+              readOnly: true,
+              onTap: () => _selectDate(context),
+              decoration: const InputDecoration(
+                  labelText: 'Tanggal', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _kodeMataUangController,
+              decoration: const InputDecoration(
+                  labelText: 'Kode Mata Uang', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _jumlahController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                  labelText: 'Jumlah', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _hargaBeliController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                  labelText: 'Harga Beli', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _hargaJualController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                  labelText: 'Harga Jual', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _addOrUpdateStok,
+                child: Text(_editingId == null ? 'Input' : 'Update'),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _jumlahStokController,
-                decoration: _inputDecoration('Jumlah Stok'),
-                keyboardType: TextInputType.number,
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Tidak boleh kosong'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _hargaBeliController,
-                decoration: _inputDecoration('Harga Beli'),
-                keyboardType: TextInputType.number,
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Tidak boleh kosong'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _hargaJualController,
-                decoration: _inputDecoration('Harga Jual'),
-                keyboardType: TextInputType.number,
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Tidak boleh kosong'
-                    : null,
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _submitData,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: stokList.length,
+                itemBuilder: (context, index) {
+                  final stok = stokList[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text('${stok.kodeMataUang}'),
+                      subtitle: Text(
+                          'Tanggal: ${DateFormat('yyyy-MM-dd').format(stok.tanggal.toDate())}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteStok(stok.id),
+                      ),
+                      onTap: () => _editStok(stok),
                     ),
-                  ),
-                  child: Text(widget.existingStock == null
-                      ? 'Tambah Stok'
-                      : 'Update Stok'),
-                ),
-              )
-            ],
-          ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

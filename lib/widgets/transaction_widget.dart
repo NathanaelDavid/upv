@@ -19,7 +19,8 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   final TextEditingController _jumlahController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
   final TextEditingController _nominalController = TextEditingController();
-  final NumberFormat _formatter = NumberFormat.currency(locale: "id_id");
+  final NumberFormat _formatter =
+      NumberFormat.currency(locale: "id_ID", symbol: 'Rp ');
 
   String? _editingId;
   String _kodeTransaksi = 'Beli';
@@ -32,41 +33,63 @@ class _TransactionWidgetState extends State<TransactionWidget> {
 
   Future<void> _fetchDataFromFirestore() async {
     try {
-      final fetchedData = await _transaksiService.getAllTransaksis();
+      final fetchedData = await _transaksiService.getAllTransaksi();
       setState(() {
         transaksiList = fetchedData;
       });
     } catch (e) {
-      print(e);
+      print('Fetch Error: $e');
     }
   }
 
   void _addOrUpdateTransaksi() async {
-    if (_tanggalController.text.isNotEmpty &&
-        _mataUangController.text.isNotEmpty &&
-        _jumlahController.text.isNotEmpty &&
-        _rateController.text.isNotEmpty) {
+    try {
+      final tanggal = _tanggalController.text;
+      final mataUang = _mataUangController.text;
+      final jumlah = double.tryParse(_jumlahController.text);
+      final rate = double.tryParse(_rateController.text);
+      final nominal = jumlah != null && rate != null ? jumlah * rate : null;
+
+      if (tanggal.isEmpty ||
+          mataUang.isEmpty ||
+          jumlah == null ||
+          rate == null ||
+          nominal == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Semua field harus diisi dengan benar')),
+        );
+        return;
+      }
+
       Map<String, dynamic> transaksiData = {
-        "timestamp": DateTime.parse(_tanggalController.text),
-        "kode_mata_uang": _mataUangController.text,
+        "timestamp": DateTime.parse(tanggal),
+        "kode_mata_uang": mataUang,
         "kode_transaksi": _kodeTransaksi,
-        "jumlah_barang": double.parse(_jumlahController.text),
-        "harga": double.parse(_rateController.text),
-        "total_nominal": double.parse(_nominalController.text),
+        "jumlah_barang": jumlah,
+        "harga": rate,
+        "total_nominal": nominal,
       };
 
-      try {
-        if (_editingId == null) {
-          await _transaksiService.createTransaksi(transaksiData);
-        } else {
-          await _transaksiService.updateTransaksi(_editingId!, transaksiData);
-          _editingId = null;
-        }
-        _fetchDataFromFirestore();
-      } catch (e) {
-        print(e);
+      if (_editingId == null) {
+        await _transaksiService.createTransaksi(transaksiData);
+      } else {
+        await _transaksiService.updateTransaksi(_editingId!, transaksiData);
       }
+
       _clearForm();
+      await _fetchDataFromFirestore();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(_editingId == null
+                ? 'Transaksi ditambahkan!'
+                : 'Transaksi diperbarui!')),
+      );
+    } catch (e) {
+      print('Add/Update Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan: $e')),
+      );
     }
   }
 
@@ -86,9 +109,9 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   void _deleteTransaksi(String id) async {
     try {
       await _transaksiService.deleteTransaksi(id);
-      _fetchDataFromFirestore();
+      await _fetchDataFromFirestore();
     } catch (e) {
-      print(e);
+      print('Delete Error: $e');
     }
   }
 
@@ -125,94 +148,107 @@ class _TransactionWidgetState extends State<TransactionWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _tanggalController,
-            readOnly: true,
-            onTap: () => _selectDate(context),
-            decoration: InputDecoration(
-                labelText: 'Tanggal', border: OutlineInputBorder()),
-          ),
-          SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: _kodeTransaksi,
-            decoration: InputDecoration(
-              labelText: 'Tipe Transaksi',
-              border: OutlineInputBorder(),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Transaksi')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _tanggalController,
+              readOnly: true,
+              onTap: () => _selectDate(context),
+              decoration: const InputDecoration(
+                labelText: 'Tanggal',
+                border: OutlineInputBorder(),
+              ),
             ),
-            items: [
-              DropdownMenuItem(value: 'Beli', child: Text('Beli')),
-              DropdownMenuItem(value: 'Jual', child: Text('Jual')),
-            ],
-            onChanged: (String? newValue) {
-              if (newValue != null) {
-                setState(() {
-                  _kodeTransaksi = newValue;
-                });
-              }
-            },
-          ),
-          SizedBox(height: 8),
-          TextField(
-            controller: _mataUangController,
-            decoration: InputDecoration(
-                labelText: 'Mata Uang', border: OutlineInputBorder()),
-          ),
-          SizedBox(height: 8),
-          TextField(
-            controller: _jumlahController,
-            keyboardType: TextInputType.number,
-            onChanged: (_) => _calculateNominal(),
-            decoration: InputDecoration(
-                labelText: 'Jumlah Mata Uang', border: OutlineInputBorder()),
-          ),
-          SizedBox(height: 8),
-          TextField(
-            controller: _rateController,
-            keyboardType: TextInputType.number,
-            onChanged: (_) => _calculateNominal(),
-            decoration: InputDecoration(
-                labelText: 'Rate', border: OutlineInputBorder()),
-          ),
-          SizedBox(height: 8),
-          TextField(
-            controller: _nominalController,
-            readOnly: true,
-            decoration: InputDecoration(
-                labelText: 'Nominal Transaksi', border: OutlineInputBorder()),
-          ),
-          SizedBox(height: 8),
-          ElevatedButton(
-            onPressed: _addOrUpdateTransaksi,
-            child: Text(_editingId == null ? 'Input' : 'Update'),
-          ),
-          SizedBox(height: 16),
-          Expanded(
-            child: ListView.builder(
-              itemCount: transaksiList.length,
-              itemBuilder: (context, index) {
-                final transaksi = transaksiList[index];
-                return Card(
-                  child: ListTile(
-                    title: Text(
-                        '${transaksi.kodeMataUang} - ${transaksi.kodeTransaksi}'),
-                    subtitle: Text(
-                        'Tanggal: ${DateFormat('yyyy-MM-dd').format(transaksi.timestamp.toDate())}'),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteTransaksi(transaksi.id),
-                    ),
-                    onTap: () => _editTransaksi(transaksi),
-                  ),
-                );
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _kodeTransaksi,
+              decoration: const InputDecoration(
+                labelText: 'Tipe Transaksi',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Beli', child: Text('Beli')),
+                DropdownMenuItem(value: 'Jual', child: Text('Jual')),
+              ],
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() => _kodeTransaksi = newValue);
+                }
               },
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            TextField(
+              controller: _mataUangController,
+              decoration: const InputDecoration(
+                labelText: 'Mata Uang',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _jumlahController,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => _calculateNominal(),
+              decoration: const InputDecoration(
+                labelText: 'Jumlah Mata Uang',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _rateController,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => _calculateNominal(),
+              decoration: const InputDecoration(
+                labelText: 'Rate',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _nominalController,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Nominal Transaksi',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _addOrUpdateTransaksi,
+                child: Text(_editingId == null ? 'Input' : 'Update'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: transaksiList.length,
+                itemBuilder: (context, index) {
+                  final transaksi = transaksiList[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(
+                          '${transaksi.kodeMataUang} - ${transaksi.kodeTransaksi}'),
+                      subtitle: Text(
+                          'Tanggal: ${DateFormat('yyyy-MM-dd').format(transaksi.timestamp.toDate())}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteTransaksi(transaksi.id),
+                      ),
+                      onTap: () => _editTransaksi(transaksi),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

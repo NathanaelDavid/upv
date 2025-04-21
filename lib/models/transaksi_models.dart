@@ -19,7 +19,11 @@ class TransaksiPublic {
     required this.totalNominal,
   });
 
-  // Factory method untuk mengonversi dari Firestore document snapshot
+  /// Getter alias agar bisa dipakai di widget
+  String get jenis => kodeTransaksi.toLowerCase(); // hasil: "jual" / "beli"
+  double get jumlah => jumlahBarang;
+
+  /// Factory method untuk mengonversi dari Firestore document snapshot
   factory TransaksiPublic.fromFirestore(DocumentSnapshot doc) {
     Map data = doc.data() as Map<String, dynamic>;
     return TransaksiPublic(
@@ -33,7 +37,7 @@ class TransaksiPublic {
     );
   }
 
-  // Convert ke format Firestore
+  /// Convert ke format Firestore
   Map<String, dynamic> toMap() {
     return {
       'timestamp': timestamp,
