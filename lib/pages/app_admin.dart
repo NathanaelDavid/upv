@@ -1,5 +1,6 @@
 // Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:upv/pages/chart_page.dart';
 import 'package:upv/pages/transaksi_page.dart';
 import '../pages/chat_page.dart';
 import '../pages/grafik_page.dart';
@@ -21,7 +22,8 @@ class _AppState extends State<App_admin> {
   static final List<Widget> _widgetOptions = <Widget>[
     HomePage(),
     ChatPage(),
-    GrafikPage(),
+    // GrafikPage(),
+    ChartPage(),
     TransaksiPage(),
     DashboardPage() // DashboardPage is the last in the list
   ];
