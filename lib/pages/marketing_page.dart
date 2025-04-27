@@ -37,29 +37,6 @@ class MarketingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Untung Prima Valasindo',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: const Color.fromARGB(255, 48, 37, 201),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => LoginPage(),
-                ),
-              );
-            },
-            child: Text(
-              'Login',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [

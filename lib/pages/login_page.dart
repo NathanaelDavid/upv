@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../pages/app.dart'; // Halaman Owner
-import '../pages/app_admin.dart'; // Halaman Admin
-import '../pages/app_pelanggan.dart'; // Halaman Pelanggan
-import '../widgets/sign_up.dart'; // Widget Sign Up Dialog
+import '../pages/app.dart';
+import '../widgets/sign_up.dart';
 import '../util/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
@@ -60,13 +58,14 @@ class _LoginPageState extends State<LoginPage> {
           .signInWithEmailAndPassword(
               email: _emailController.text.trim(),
               password: _passwordController.text.trim());
-
-      String role = await _getUserRole(userCredential.user!.uid, email);
       _showMessage('Login berhasil!');
 
+      // Replace the current route with App widget to force a rebuild
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => _getHomePageForRole(role)),
+        MaterialPageRoute(
+          builder: (context) => App(),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       String errorMessage;
@@ -81,46 +80,9 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       _showMessage('Terjadi kesalahan: ${e.toString()}');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<String> _getUserRole(String userId, String email) async {
-    FirebaseFirestore firestore = FirebaseFirestore.instance;
-    DocumentSnapshot userDoc =
-        await firestore.collection('users').doc(userId).get();
-
-    if (userDoc.exists) {
-      var data = userDoc.data() as Map<String, dynamic>?;
-      if (data != null && data.containsKey('role')) {
-        return data['role'];
-      }
-    }
-
-    // String role = 'user';
-    // if (email == "upv@gmail.com") {
-    //   role = 'owner';
-    // } else if (email == "admin@gmail.com") {
-    //   role = 'admin';
-    // }
-
-    // await firestore.collection('users').doc(userId).set({
-    //   'email': email,
-    // });
-
-    return "";
-  }
-
-  Widget _getHomePageForRole(String role) {
-    switch (role) {
-      case 'admin':
-        return App_admin();
-      case 'owner':
-        return App();
-      default:
-        return App_pelanggan();
+        setState(() {
+          _isLoading = false;
+        });
     }
   }
 
@@ -134,12 +96,12 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
 
   @override

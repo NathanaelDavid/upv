@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:upv/firebase_options.dart';
 import 'package:upv/pages/login_page.dart';
 import 'package:upv/pages/marketing_page.dart';
+import 'package:upv/pages/app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,8 +22,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MarketingPage(),
-      // home: LoginPage(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => App(),
+        '/login': (context) => LoginPage(),
+      },
     );
   }
 }
