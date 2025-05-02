@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'login_page.dart';
+import '../widgets/currency_widget.dart'; // pastikan file ini ada
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -9,6 +9,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Untung Prima Valasindo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        useMaterial3: true,
+        scaffoldBackgroundColor: Colors.grey[50],
+      ),
       initialRoute: '/',
       routes: {
         '/': (context) => MarketingPage(),
@@ -26,12 +31,6 @@ class MarketingPage extends StatelessWidget {
     'lib/gambar/gambar_4.jpeg',
   ];
 
-  final List<Map<String, dynamic>> currencies = [
-    {'currency': 'USD', 'buy': 15900, 'sell': 15950},
-    {'currency': 'EUR', 'buy': 16500, 'sell': 16550},
-    {'currency': 'JPY', 'buy': 100, 'sell': 105},
-  ];
-
   MarketingPage({super.key});
 
   @override
@@ -40,83 +39,35 @@ class MarketingPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Profil Perusahaan
-          Text(
-            'Profil Perusahaan',
-            style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Visi: Menjadi penyedia layanan penukaran uang terpercaya di Indonesia.',
-            style: TextStyle(fontSize: 16.0),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Misi:\n- Memberikan layanan yang cepat, aman, dan nyaman.\n- Menyediakan nilai tukar yang kompetitif.\n- Berkomitmen pada kepuasan pelanggan.',
-            style: TextStyle(fontSize: 16.0),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Deskripsi: Untung Prima Valasindo adalah perusahaan money changer yang telah berdiri sejak tahun 2013 dan memiliki reputasi unggul dalam melayani kebutuhan valuta asing.',
-            style: TextStyle(fontSize: 16.0),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Lokasi: Pasar Baru lantai 3 Blok C2 No. 60 Jl. Otto Iskandardinata No. 70, Bandung.',
-            style: TextStyle(fontSize: 16.0),
-          ),
-          SizedBox(height: 20),
-
-          // Kurs Mata Uang
-          Text(
-            'Kurs Mata Uang',
-            style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 10),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: currencies.length,
-            itemBuilder: (context, index) {
-              return Card(
-                elevation: 2,
-                margin: EdgeInsets.symmetric(vertical: 8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        currencies[index]['currency'],
-                        style: TextStyle(
-                            fontSize: 16.0, fontWeight: FontWeight.bold),
-                      ),
-                      Text('Beli: ${currencies[index]['buy']}'),
-                      Text('Jual: ${currencies[index]['sell']}'),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          // Galeri Perusahaan
-          Text(
-            'Galeri Perusahaan',
-            style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 10),
+          sectionTitle('Profil Perusahaan'),
+          sectionText(
+              'Visi: Menjadi penyedia layanan penukaran uang terpercaya di Indonesia.'),
+          sectionText(
+              'Misi:\n- Memberikan layanan yang cepat, aman, dan nyaman.\n- Menyediakan nilai tukar yang kompetitif.\n- Berkomitmen pada kepuasan pelanggan.'),
+          sectionText(
+              'Deskripsi: Untung Prima Valasindo adalah perusahaan money changer yang telah berdiri sejak tahun 2013 dan memiliki reputasi unggul dalam melayani kebutuhan valuta asing.'),
+          sectionText(
+              'Lokasi: Pasar Baru lantai 3 Blok C2 No. 60 Jl. Otto Iskandardinata No. 70, Bandung.'),
+          const Divider(height: 32),
+          sectionTitle('Kurs Mata Uang'),
+          const SizedBox(height: 8),
+          CurrencyWidget(),
+          const Divider(height: 32),
+          sectionTitle('Galeri Perusahaan'),
+          const SizedBox(height: 8),
           GridView.builder(
             shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 8.0,
-              mainAxisSpacing: 8.0,
+              crossAxisSpacing: 12.0,
+              mainAxisSpacing: 12.0,
+              childAspectRatio: 1,
             ),
             itemCount: imagePaths.length,
             itemBuilder: (context, index) {
-              return Card(
-                elevation: 4,
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(12.0),
                 child: Image.asset(
                   imagePaths[index],
                   fit: BoxFit.cover,
@@ -124,8 +75,24 @@ class MarketingPage extends StatelessWidget {
               );
             },
           ),
-          SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  Widget sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.w600),
+    );
+  }
+
+  Widget sectionText(String content) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Text(
+        content,
+        style: const TextStyle(fontSize: 14.5, color: Colors.black87),
       ),
     );
   }

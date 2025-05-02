@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import '../widgets/currency_widget.dart';
 
 class CompanyProfilePage extends StatelessWidget {
-  final List<String> bannerImages = [
-    'lib/gambar/image_1.jpg',
-    'lib/gambar/image_2.jpg',
-    'lib/gambar/image_3.jpg',
-    'lib/gambar/image_4.jpg',
+  final List<String> imagePaths = [
+    'lib/gambar/gambar_1.jpeg',
+    'lib/gambar/gambar_2.jpeg',
+    'lib/gambar/gambar_3.jpeg',
+    'lib/gambar/gambar_4.jpeg',
   ];
 
   CompanyProfilePage({super.key});
@@ -15,63 +15,20 @@ class CompanyProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 245, 244, 255),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 48, 37, 201),
-        title: const Text('Profil Perusahaan',
-            style: TextStyle(color: Colors.white)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/login');
-            },
-            child: const Text(
-              'Login',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              SizedBox(
-                height: 200.0,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: bannerImages.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10.0),
-                        child: Image.asset(
-                          bannerImages[index],
-                          fit: BoxFit.cover,
-                          width: MediaQuery.of(context).size.width * 0.8,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16.0),
               LayoutBuilder(
                 builder: (context, constraints) {
                   return constraints.maxWidth > 600
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 3,
-                              child: _buildCompanyInfo(),
-                            ),
+                            Expanded(flex: 3, child: _buildCompanyInfo()),
                             const SizedBox(width: 16.0),
-                            Expanded(
-                              flex: 2,
-                              child: CurrencyWidget(),
-                            ),
+                            Expanded(flex: 2, child: CurrencyWidget()),
                           ],
                         )
                       : Column(
@@ -83,6 +40,8 @@ class CompanyProfilePage extends StatelessWidget {
                         );
                 },
               ),
+              const SizedBox(height: 24.0),
+              _buildImageGallery(context),
             ],
           ),
         ),
@@ -94,15 +53,15 @@ class CompanyProfilePage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CircleAvatar(
-          radius: 50,
-          backgroundColor: Colors.white,
-          child: Icon(
-            Icons.account_balance,
-            size: 50,
-            color: Color.fromARGB(255, 48, 37, 201),
-          ),
-        ),
+        // const CircleAvatar(
+        //   radius: 50,
+        //   backgroundColor: Colors.white,
+        //   child: Icon(
+        //     Icons.account_balance,
+        //     size: 50,
+        //     color: Color.fromARGB(255, 48, 37, 201),
+        //   ),
+        // ),
         const SizedBox(height: 16.0),
         const Text(
           'Untung Prima Valasindo',
@@ -144,7 +103,9 @@ class CompanyProfilePage extends StatelessWidget {
                 Text(
                   'Kami adalah perusahaan yang bergerak di bidang valuta asing, menyediakan layanan terbaik untuk kebutuhan transaksi mata uang Anda.',
                   style: TextStyle(
-                      fontSize: 16.0, color: Color.fromARGB(255, 39, 39, 39)),
+                    fontSize: 16.0,
+                    color: Color.fromARGB(255, 39, 39, 39),
+                  ),
                 ),
                 SizedBox(height: 16.0),
                 Text(
@@ -158,7 +119,9 @@ class CompanyProfilePage extends StatelessWidget {
                 Text(
                   'Menjadi penyedia layanan valuta asing terkemuka di Indonesia.',
                   style: TextStyle(
-                      fontSize: 16.0, color: Color.fromARGB(255, 39, 39, 39)),
+                    fontSize: 16.0,
+                    color: Color.fromARGB(255, 39, 39, 39),
+                  ),
                 ),
                 SizedBox(height: 16.0),
                 Text(
@@ -174,10 +137,52 @@ class CompanyProfilePage extends StatelessWidget {
                   '2. Menyediakan informasi terkini mengenai kurs mata uang.\n'
                   '3. Membangun kepercayaan dan hubungan jangka panjang dengan pelanggan.',
                   style: TextStyle(
-                      fontSize: 16.0, color: Color.fromARGB(255, 39, 39, 39)),
+                    fontSize: 16.0,
+                    color: Color.fromARGB(255, 39, 39, 39),
+                  ),
                 ),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageGallery(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Galeri Perusahaan',
+          style: TextStyle(
+            fontSize: 20.0,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(255, 48, 37, 201),
+          ),
+        ),
+        const SizedBox(height: 12.0),
+        SizedBox(
+          height: 300,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: imagePaths.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: Container(
+                    width: 400,
+                    color: Colors.grey[300],
+                    child: Image.asset(
+                      imagePaths[index],
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],

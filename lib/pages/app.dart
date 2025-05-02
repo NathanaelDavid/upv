@@ -11,6 +11,8 @@ import 'package:upv/pages/grafik_page.dart';
 import 'package:upv/pages/grafik_stok_page.dart';
 import 'package:upv/pages/home_page.dart';
 import 'package:upv/pages/chart_page.dart';
+import 'package:upv/pages/CompanyProfilePage.dart';
+import 'package:upv/pages/laporan_page.dart';
 import 'package:upv/widgets/navigation_buttons.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -145,12 +147,17 @@ class _AppState extends State<App> {
     switch (_userRole) {
       case 'owner':
         return [
+          (CompanyProfilePage(), 'Company Profile'),
           (HomePage(), 'Home'),
           (ChatPage(), 'Chat'),
           (ForexScreen(), 'Forex'),
           (GrafikStokPage(), 'Stok'),
           (TransaksiPage(), 'Transaksi'),
-          (CurrencyAnalysisPage(onNavigate: (p0) => 0, selectedIndex: 0), 'Analisis')
+          (LaporanPage(), 'Laporan'),
+          (
+            CurrencyAnalysisPage(onNavigate: (p0) => 0, selectedIndex: 0),
+            'Analisis'
+          )
         ];
       case 'admin':
         return [
