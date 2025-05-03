@@ -2,7 +2,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:upv/firebase_options.dart';
 import 'package:upv/pages/login_page.dart';
-import 'package:upv/pages/marketing_page.dart';
 import 'package:upv/pages/app.dart';
 
 void main() async {

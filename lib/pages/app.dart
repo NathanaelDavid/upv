@@ -143,13 +143,15 @@ class _AppState extends State<App> {
     return 'user';
   }
 
+
+
   List<(Widget, String)> _getWidgetOptions() {
     switch (_userRole) {
       case 'owner':
         return [
           (CompanyProfilePage(), 'Company Profile'),
           (HomePage(), 'Home'),
-          (ChatPage(), 'Chat'),
+          (ChatPage(userRole: _userRole), 'Chat'),
           (ForexScreen(), 'Forex'),
           (GrafikStokPage(), 'Stok'),
           (TransaksiPage(), 'Transaksi'),
@@ -162,14 +164,14 @@ class _AppState extends State<App> {
       case 'admin':
         return [
           (HomePage(), 'Home'),
-          (ChatPage(), 'Chat'),
+          (ChatPage(userRole: _userRole), 'Chat'),
           (ChartPage(), 'Chart'),
           (TransaksiPage(), 'Transaksi'),
         ];
       case 'user':
         return [
           (HomePage(), 'Home'),
-          (ChatPage(), 'Chat'),
+          (ChatPage(userRole: _userRole), 'Chat'),
           (GrafikPage(), 'Grafik'),
         ];
       case null:
@@ -177,7 +179,7 @@ class _AppState extends State<App> {
       default:
         return [
           (HomePage(), 'Home'),
-          (ChatPage(), 'Chat'),
+          (ChatPage(userRole: _userRole), 'Chat'),
           (GrafikPage(), 'Grafik'),
         ];
     }
