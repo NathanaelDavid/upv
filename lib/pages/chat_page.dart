@@ -5,14 +5,16 @@ import '../util/chat_service.dart';
 import '../models/chat_models.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final String? userRole;
+
+  const ChatPage({super.key, required this.userRole});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final ChatService _chatService = ChatService();
+  late final ChatService _chatService;
   List<ChatPublic> _chats = [];
   ChatPublic? _selectedChat;
   Timer? _pollingTimer;
@@ -20,6 +22,9 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+
+    _chatService = ChatService(widget.userRole);
+
     _loadChats();
 
     // Start polling every 10 seconds
@@ -53,6 +58,13 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  Future<void> _sendMessage(String message) async {
+    if (_selectedChat != null) {
+      await _chatService.sendMessage(_selectedChat!.id, message);
+      await _loadChats();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,9 +80,8 @@ class _ChatPageState extends State<ChatPage> {
                 itemBuilder: (context, index) {
                   final chat = _chats[index];
                   final isSelected = _selectedChat?.id == chat.id;
-                  final lastMessage = chat.daftarPesan.isNotEmpty
-                      ? chat.daftarPesan.last
-                      : null;
+                  final lastMessage =
+                      chat.messages.isNotEmpty ? chat.messages.last : null;
 
                   return ListTile(
                     selected: isSelected,
@@ -78,9 +89,9 @@ class _ChatPageState extends State<ChatPage> {
                     leading: const CircleAvatar(
                       child: Icon(Icons.person),
                     ),
-                    title: Text(chat.nama),
+                    title: Text(chat.name),
                     subtitle: Text(
-                      lastMessage?.pesan ?? 'Belum ada pesan',
+                      lastMessage?.text ?? 'Belum ada pesan',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -108,7 +119,7 @@ class _ChatPageState extends State<ChatPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Chat dengan ${_selectedChat!.nama}',
+                          'Chat dengan ${_selectedChat!.name}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -118,13 +129,9 @@ class _ChatPageState extends State<ChatPage> {
                         Expanded(
                           child: ChatWidget(
                             chat: _selectedChat!,
-                            username: _selectedChat!.nama,
+                            username: _selectedChat!.name,
                             onSendMessage: (message) async {
-                              // TODO: Tambahkan logika simpan ke backend di sini
-                              print('Pesan baru: $message');
-
-                              // Refresh ulang
-                              await _loadChats();
+                              await _sendMessage(message);
                             },
                           ),
                         ),

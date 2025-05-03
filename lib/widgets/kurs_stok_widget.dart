@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../util/stok_service.dart';
 import '../util/transaksi_service.dart'; // Tambahkan jika belum ada
 import '../models/models_stok.dart';
-import '../models/transaksi_models.dart';
 
 class KursStockWidget extends StatefulWidget {
   const KursStockWidget({super.key});
