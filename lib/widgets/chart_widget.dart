@@ -125,12 +125,14 @@ class _ChartWidgetState extends State<ChartWidget> {
                         series: <CartesianSeries>[
                           LineSeries<StockPublic, DateTime>(
                             name: 'Harga Jual',
+                            color: Colors.red, // Merah
                             dataSource: stockData,
                             xValueMapper: (data, _) => data.tanggal.toDate(),
                             yValueMapper: (data, _) => data.hargaJual,
                           ),
                           LineSeries<StockPublic, DateTime>(
                             name: 'Harga Beli',
+                            color: Colors.blue, // Biru
                             dataSource: stockData,
                             xValueMapper: (data, _) => data.tanggal.toDate(),
                             yValueMapper: (data, _) => data.hargaBeli,

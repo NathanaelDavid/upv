@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:upv/pages/grafik_api_page.dart';
+// import 'package:upv/pages/grafik_api_page.dart';
 import 'package:upv/pages/login_page.dart';
 import 'package:upv/pages/marketing_page.dart';
 import 'package:upv/pages/transaksi_page.dart';
@@ -143,8 +143,6 @@ class _AppState extends State<App> {
     return 'user';
   }
 
-
-
   List<(Widget, String)> _getWidgetOptions() {
     switch (_userRole) {
       case 'owner':
@@ -152,14 +150,14 @@ class _AppState extends State<App> {
           (CompanyProfilePage(), 'Company Profile'),
           (HomePage(), 'Home'),
           (ChatPage(userRole: _userRole), 'Chat'),
-          (ForexScreen(), 'Forex'),
+          (ChartPage(), 'Chart'),
           (GrafikStokPage(), 'Stok'),
           (TransaksiPage(), 'Transaksi'),
           (LaporanPage(), 'Laporan'),
-          (
-            CurrencyAnalysisPage(onNavigate: (p0) => 0, selectedIndex: 0),
-            'Analisis'
-          )
+          // (
+          //   CurrencyAnalysisPage(onNavigate: (p0) => 0, selectedIndex: 0),
+          //   'Analisis'
+          // )
         ];
       case 'admin':
         return [

@@ -39,21 +39,32 @@ class _ChartPageState extends State<ChartPage> {
     final url =
         'https://marketdata.tradermade.com/api/v1/timeseries?api_key=$apiKey&currency=$selectedCurrency&format=records&start_date=$startDate&end_date=$endDate&interval=$interval&period=1';
 
+    print("Fetching data: $url");
+
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final List<dynamic> quotes = data['quotes'];
+      if (data['quotes'] != null) {
+        final List<dynamic> quotes = data['quotes'];
 
-      setState(() {
-        chartData = [];
-        xLabels = [];
-        for (int i = 0; i < quotes.length; i++) {
-          chartData.add(FlSpot(i.toDouble(), quotes[i]['close']));
-          xLabels.add(quotes[i]['date']);
-        }
-      });
+        setState(() {
+          chartData = [];
+          xLabels = [];
+          for (int i = 0; i < quotes.length; i++) {
+            final double closeValue = quotes[i]['close']?.toDouble() ?? 0.0;
+            chartData.add(FlSpot(i.toDouble(), closeValue));
+            xLabels.add(quotes[i]['date']);
+          }
+        });
+      } else {
+        print("No quotes found in response.");
+      }
+    } else {
+      print("Error fetching data: ${response.statusCode}");
+      print("Response body: ${response.body}");
     }
+
     setState(() => isLoading = false);
   }
 
@@ -128,7 +139,7 @@ class _ChartPageState extends State<ChartPage> {
                               ],
                               titlesData: FlTitlesData(
                                 leftTitles: AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
+                                    sideTitles: SideTitles(showTitles: true)),
                                 rightTitles: AxisTitles(
                                     sideTitles: SideTitles(showTitles: false)),
                                 topTitles: AxisTitles(
@@ -154,7 +165,8 @@ class _ChartPageState extends State<ChartPage> {
                               borderData: FlBorderData(show: true),
                               lineTouchData: LineTouchData(
                                 touchTooltipData: LineTouchTooltipData(
-                                  getTooltipColor: (touchedSpot) => Colors.lightBlue,
+                                  getTooltipColor: (touchedSpot) =>
+                                      Colors.lightBlue,
                                   tooltipBorder:
                                       BorderSide(color: Colors.grey.shade300),
                                   getTooltipItems:
