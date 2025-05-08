@@ -3,26 +3,28 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
 
-class LaporanPage extends StatefulWidget {
-  const LaporanPage({super.key});
+class LaporanBeliPage extends StatefulWidget {
+  const LaporanBeliPage({super.key});
 
   @override
-  State<LaporanPage> createState() => _LaporanPageState();
+  State<LaporanBeliPage> createState() => _LaporanBeliPageState();
 }
 
 class _ChartData {
   final DateTime date;
-  final double hargaBeli;
-  final double hargaJual;
+  final double avgHarga;
+  final double totalNominal;
+  final double jumlahBarang;
 
   _ChartData({
     required this.date,
-    required this.hargaBeli,
-    required this.hargaJual,
+    required this.avgHarga,
+    required this.totalNominal,
+    required this.jumlahBarang,
   });
 }
 
-class _LaporanPageState extends State<LaporanPage> {
+class _LaporanBeliPageState extends State<LaporanBeliPage> {
   String? selectedCurrency;
   DateTime selectedMonth = DateTime.now();
   List<String> currencies = [];
@@ -39,9 +41,9 @@ class _LaporanPageState extends State<LaporanPage> {
   Future<void> _loadCurrencies() async {
     try {
       final snapshot =
-          await FirebaseFirestore.instance.collection('stocks').get();
+          await FirebaseFirestore.instance.collection('transaksi').get();
       final allCurrencies = snapshot.docs
-          .map((doc) => doc['kodeMataUang'] as String?)
+          .map((doc) => doc['kode_mata_uang'] as String?)
           .whereType<String>()
           .toSet()
           .toList();
@@ -69,47 +71,55 @@ class _LaporanPageState extends State<LaporanPage> {
       DateTime start = DateTime(selectedMonth.year, selectedMonth.month);
       DateTime end = DateTime(selectedMonth.year, selectedMonth.month + 1);
 
-      // Create query for fetching data from Firestore based on 'stocks'
       Query query = FirebaseFirestore.instance
-          .collection('stocks')
-          .where('tanggal', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-          .where('tanggal', isLessThan: Timestamp.fromDate(end));
+          .collection('transaksi')
+          .where('kode_transaksi', isEqualTo: 'Beli')
+          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+          .where('timestamp', isLessThan: Timestamp.fromDate(end));
 
-      // Apply currency filter if a currency is selected
       if (selectedCurrency != null) {
-        query = query.where('kodeMataUang', isEqualTo: selectedCurrency);
+        query = query.where('kode_mata_uang', isEqualTo: selectedCurrency);
       }
 
-      final snapshot = await query.orderBy('tanggal').get();
+      final snapshot = await query.orderBy('timestamp').get();
 
       final grouped = <DateTime, List<DocumentSnapshot>>{};
 
       for (var doc in snapshot.docs) {
-        final timestamp = doc['tanggal'] as Timestamp?;
+        final timestamp = doc['timestamp'] as Timestamp?;
         if (timestamp == null) continue;
-        final date = DateTime(timestamp.toDate().year, timestamp.toDate().month,
-            timestamp.toDate().day);
+        final date = DateTime(
+          timestamp.toDate().year,
+          timestamp.toDate().month,
+          timestamp.toDate().day,
+        );
         grouped.putIfAbsent(date, () => []).add(doc);
       }
 
       final List<_ChartData> result = [];
       grouped.forEach((date, docs) {
-        double totalHargaBeli = 0;
-        double totalHargaJual = 0;
+        double totalNominal = 0;
+        double totalHarga = 0;
+        double totalQty = 0;
+        int count = 0;
 
         for (var doc in docs) {
-          final hargaBeli = (doc['hargaBeli'] ?? 0).toDouble();
-          final hargaJual = (doc['hargaJual'] ?? 0).toDouble();
+          final harga = (doc['harga'] ?? 0).toDouble();
+          final nominal = (doc['total_nominal'] ?? 0).toDouble();
+          final qty = (doc['jumlah_barang'] ?? 0).toDouble();
 
-          totalHargaBeli += hargaBeli;
-          totalHargaJual += hargaJual;
+          totalHarga += harga;
+          totalNominal += nominal;
+          totalQty += qty;
+          count++;
         }
 
         result.add(
           _ChartData(
             date: date,
-            hargaBeli: totalHargaBeli,
-            hargaJual: totalHargaJual,
+            avgHarga: count > 0 ? totalHarga / count : 0,
+            totalNominal: totalNominal,
+            jumlahBarang: totalQty,
           ),
         );
       });
@@ -157,7 +167,7 @@ class _LaporanPageState extends State<LaporanPage> {
     final monthLabel = DateFormat.yMMMM().format(selectedMonth);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan Harga Beli dan Jual')),
+      appBar: AppBar(title: const Text('Laporan Pembelian')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -193,7 +203,7 @@ class _LaporanPageState extends State<LaporanPage> {
             if (isLoading)
               const CircularProgressIndicator()
             else if (chartData.isEmpty)
-              const Text('Tidak ada data harga beli dan jual.')
+              const Text('Tidak ada data pembelian.')
             else ...[
               Expanded(
                 child: Row(
@@ -202,16 +212,41 @@ class _LaporanPageState extends State<LaporanPage> {
                       child: SfCartesianChart(
                         primaryXAxis: DateTimeAxis(),
                         primaryYAxis: NumericAxis(
-                          title: AxisTitle(text: 'Harga Beli'),
+                          title: AxisTitle(text: 'Kurs'),
+                          name: 'HargaAxis',
                         ),
-                        title: ChartTitle(text: 'Grafik Harga Beli'),
+                        axes: <ChartAxis>[
+                          NumericAxis(
+                            name: 'NominalAxis',
+                            opposedPosition: true,
+                            title: AxisTitle(text: 'Total Nominal (Rp)'),
+                          ),
+                          NumericAxis(
+                            name: 'QtyAxis',
+                            opposedPosition: true,
+                            title: AxisTitle(text: 'Jumlah Barang'),
+                            plotOffset: 40,
+                          ),
+                        ],
+                        title: ChartTitle(text: 'Grafik Pembelian'),
+                        legend: const Legend(isVisible: true),
                         tooltipBehavior: TooltipBehavior(enable: true),
                         series: <CartesianSeries<_ChartData, DateTime>>[
                           LineSeries<_ChartData, DateTime>(
-                            name: 'Harga Beli',
+                            name: 'Kurs',
                             dataSource: chartData,
                             xValueMapper: (data, _) => data.date,
-                            yValueMapper: (data, _) => data.hargaBeli,
+                            yValueMapper: (data, _) => data.avgHarga,
+                            yAxisName: 'HargaAxis',
+                            markerSettings:
+                                const MarkerSettings(isVisible: true),
+                          ),
+                          LineSeries<_ChartData, DateTime>(
+                            name: 'Total Nominal',
+                            dataSource: chartData,
+                            xValueMapper: (data, _) => data.date,
+                            yValueMapper: (data, _) => data.totalNominal,
+                            yAxisName: 'NominalAxis',
                             markerSettings:
                                 const MarkerSettings(isVisible: true),
                           ),
@@ -223,18 +258,18 @@ class _LaporanPageState extends State<LaporanPage> {
                       child: SfCartesianChart(
                         primaryXAxis: DateTimeAxis(),
                         primaryYAxis: NumericAxis(
-                          title: AxisTitle(text: 'Harga Jual'),
+                          title: AxisTitle(text: 'Jumlah Barang'),
                         ),
-                        title: ChartTitle(text: 'Grafik Harga Jual'),
+                        title: ChartTitle(text: 'Grafik Stok Pembelian'),
                         tooltipBehavior: TooltipBehavior(enable: true),
                         series: <CartesianSeries<_ChartData, DateTime>>[
-                          LineSeries<_ChartData, DateTime>(
-                            name: 'Harga Jual',
+                          ColumnSeries<_ChartData, DateTime>(
+                            name: 'Jumlah Barang',
                             dataSource: chartData,
                             xValueMapper: (data, _) => data.date,
-                            yValueMapper: (data, _) => data.hargaJual,
-                            markerSettings:
-                                const MarkerSettings(isVisible: true),
+                            yValueMapper: (data, _) => data.jumlahBarang,
+                            dataLabelSettings:
+                                const DataLabelSettings(isVisible: true),
                           ),
                         ],
                       ),
@@ -244,7 +279,7 @@ class _LaporanPageState extends State<LaporanPage> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Rekapitulasi Harga Beli dan Jual',
+                'Rekapitulasi Transaksi Pembelian',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -253,16 +288,18 @@ class _LaporanPageState extends State<LaporanPage> {
                   child: DataTable(
                     columns: const [
                       DataColumn(label: Text('Tanggal')),
-                      DataColumn(label: Text('Harga Beli')),
-                      DataColumn(label: Text('Harga Jual')),
+                      DataColumn(label: Text('Kurs')),
+                      DataColumn(label: Text('Total Nominal (Rp)')),
+                      DataColumn(label: Text('Jumlah Barang')),
                     ],
                     rows: chartData.map((data) {
                       return DataRow(
                         cells: [
                           DataCell(
                               Text(DateFormat('dd MMM').format(data.date))),
-                          DataCell(Text(data.hargaBeli.toStringAsFixed(2))),
-                          DataCell(Text(data.hargaJual.toStringAsFixed(2))),
+                          DataCell(Text(data.avgHarga.toStringAsFixed(2))),
+                          DataCell(Text(data.totalNominal.toStringAsFixed(2))),
+                          DataCell(Text(data.jumlahBarang.toStringAsFixed(2))),
                         ],
                       );
                     }).toList(),

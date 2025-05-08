@@ -85,7 +85,7 @@ class _KursStockWidgetState extends State<KursStockWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Data Stok Mata Uang',
+                'Data Kurs & Stok Mata Uang',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),

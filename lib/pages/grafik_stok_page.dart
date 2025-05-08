@@ -2,18 +2,30 @@ import 'package:flutter/material.dart';
 import '../widgets/kurs_stok_widget.dart';
 import '../widgets/input_stok_widget.dart';
 
-class GrafikStokPage extends StatelessWidget {
+class GrafikStokPage extends StatefulWidget {
   const GrafikStokPage({super.key});
+
+  @override
+  State<GrafikStokPage> createState() => _GrafikStokPageState();
+}
+
+class _GrafikStokPageState extends State<GrafikStokPage> {
+  Key _kursWidgetKey = UniqueKey();
+
+  void _refreshKursWidget() {
+    setState(() {
+      _kursWidgetKey = UniqueKey(); // Ganti key → rebuild KursStockWidget
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Grafik Stok Mata Uang'),
+        title: Text('Kurs Mata Uang'),
       ),
       body: Row(
         children: [
-          // Bagian kiri: Placeholder grafik
           Expanded(
             flex: 2,
             child: Container(
@@ -21,18 +33,20 @@ class GrafikStokPage extends StatelessWidget {
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
-                  child: InputStokWidget(),
+                  child: InputStokWidget(
+                    onStokChanged: _refreshKursWidget, // ⬅️ Callback
+                  ),
                 ),
               ),
             ),
           ),
-
-          // Bagian kanan: Daftar stok
           Expanded(
             flex: 3,
             child: Padding(
               padding: EdgeInsets.all(16.0),
-              child: KursStockWidget(),
+              child: KursStockWidget(
+                key: _kursWidgetKey, // ⬅️ Force rebuild on key change
+              ),
             ),
           ),
         ],

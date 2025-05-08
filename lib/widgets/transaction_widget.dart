@@ -15,7 +15,6 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   final TransaksiService _transaksiService = TransaksiService();
 
   final TextEditingController _tanggalController = TextEditingController();
-  final TextEditingController _mataUangController = TextEditingController();
   final TextEditingController _jumlahController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
   final TextEditingController _nominalController = TextEditingController();
@@ -24,6 +23,14 @@ class _TransactionWidgetState extends State<TransactionWidget> {
 
   String? _editingId;
   String _kodeTransaksi = 'Beli';
+  String? _selectedMataUang;
+  final List<String> _mataUangList = [
+    'USD',
+    'EUR',
+    'JPY',
+    'IDR',
+    'SGD'
+  ]; // Ganti sesuai data kamu
 
   @override
   void initState() {
@@ -45,13 +52,13 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   void _addOrUpdateTransaksi() async {
     try {
       final tanggal = _tanggalController.text;
-      final mataUang = _mataUangController.text;
+      final mataUang = _selectedMataUang;
       final jumlah = double.tryParse(_jumlahController.text);
       final rate = double.tryParse(_rateController.text);
       final nominal = jumlah != null && rate != null ? jumlah * rate : null;
 
       if (tanggal.isEmpty ||
-          mataUang.isEmpty ||
+          mataUang == null ||
           jumlah == null ||
           rate == null ||
           nominal == null) {
@@ -97,7 +104,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
     setState(() {
       _tanggalController.text =
           DateFormat('yyyy-MM-dd').format(transaksi.timestamp.toDate());
-      _mataUangController.text = transaksi.kodeMataUang;
+      _selectedMataUang = transaksi.kodeMataUang;
       _jumlahController.text = transaksi.jumlahBarang.toString();
       _rateController.text = transaksi.harga.toString();
       _nominalController.text = _formatter.format(transaksi.totalNominal);
@@ -117,7 +124,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
 
   void _clearForm() {
     _tanggalController.clear();
-    _mataUangController.clear();
+    _selectedMataUang = null;
     _jumlahController.clear();
     _rateController.clear();
     _nominalController.clear();
@@ -152,81 +159,110 @@ class _TransactionWidgetState extends State<TransactionWidget> {
       appBar: AppBar(title: const Text('Transaksi')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
+        child: Row(
           children: [
-            TextField(
-              controller: _tanggalController,
-              readOnly: true,
-              onTap: () => _selectDate(context),
-              decoration: const InputDecoration(
-                labelText: 'Tanggal',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _kodeTransaksi,
-              decoration: const InputDecoration(
-                labelText: 'Tipe Transaksi',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'Beli', child: Text('Beli')),
-                DropdownMenuItem(value: 'Jual', child: Text('Jual')),
-              ],
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() => _kodeTransaksi = newValue);
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _mataUangController,
-              decoration: const InputDecoration(
-                labelText: 'Mata Uang',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _jumlahController,
-              keyboardType: TextInputType.number,
-              onChanged: (_) => _calculateNominal(),
-              decoration: const InputDecoration(
-                labelText: 'Jumlah Mata Uang',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _rateController,
-              keyboardType: TextInputType.number,
-              onChanged: (_) => _calculateNominal(),
-              decoration: const InputDecoration(
-                labelText: 'Rate',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _nominalController,
-              readOnly: true,
-              decoration: const InputDecoration(
-                labelText: 'Nominal Transaksi',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _addOrUpdateTransaksi,
-                child: Text(_editingId == null ? 'Input' : 'Update'),
-              ),
-            ),
-            const SizedBox(height: 16),
             Expanded(
+              flex: 1,
+              child: ListView(
+                children: [
+                  TextField(
+                    controller: _tanggalController,
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
+                    decoration: const InputDecoration(
+                      labelText: 'Tanggal',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CheckboxListTile(
+                          title: const Text('Beli'),
+                          value: _kodeTransaksi == 'Beli',
+                          onChanged: (bool? value) {
+                            if (value == true) {
+                              setState(() => _kodeTransaksi = 'Beli');
+                            }
+                          },
+                        ),
+                      ),
+                      Expanded(
+                        child: CheckboxListTile(
+                          title: const Text('Jual'),
+                          value: _kodeTransaksi == 'Jual',
+                          onChanged: (bool? value) {
+                            if (value == true) {
+                              setState(() => _kodeTransaksi = 'Jual');
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedMataUang,
+                    decoration: const InputDecoration(
+                      labelText: 'Pilih Mata Uang',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _mataUangList
+                        .map((kode) => DropdownMenuItem(
+                              value: kode,
+                              child: Text(kode),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedMataUang = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _jumlahController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => _calculateNominal(),
+                    decoration: const InputDecoration(
+                      labelText: 'Jumlah Mata Uang',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _rateController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => _calculateNominal(),
+                    decoration: const InputDecoration(
+                      labelText: 'Rate',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nominalController,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Nominal Transaksi',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _addOrUpdateTransaksi,
+                      child: Text(_editingId == null ? 'Input' : 'Update'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 1,
               child: ListView.builder(
                 itemCount: transaksiList.length,
                 itemBuilder: (context, index) {

@@ -13,6 +13,8 @@ import 'package:upv/pages/home_page.dart';
 import 'package:upv/pages/chart_page.dart';
 import 'package:upv/pages/CompanyProfilePage.dart';
 import 'package:upv/pages/laporan_page.dart';
+import 'package:upv/pages/laporan_jual_page.dart';
+import 'package:upv/pages/laporan_beli_page.dart';
 import 'package:upv/widgets/navigation_buttons.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -150,10 +152,12 @@ class _AppState extends State<App> {
           (CompanyProfilePage(), 'Company Profile'),
           (HomePage(), 'Home'),
           (ChatPage(userRole: _userRole), 'Chat'),
-          (ChartPage(), 'Chart'),
-          (GrafikStokPage(), 'Stok'),
+          (ChartPage(), 'Grafik'),
+          (GrafikStokPage(), 'Kurs'),
           (TransaksiPage(), 'Transaksi'),
-          (LaporanPage(), 'Laporan'),
+          (LaporanPage(), 'Laporan Kurs'),
+          (LaporanJualPage(), 'Laporan Jual'),
+          (LaporanBeliPage(), 'Laporan Beli'),
           // (
           //   CurrencyAnalysisPage(onNavigate: (p0) => 0, selectedIndex: 0),
           //   'Analisis'
@@ -170,7 +174,7 @@ class _AppState extends State<App> {
         return [
           (HomePage(), 'Home'),
           (ChatPage(userRole: _userRole), 'Chat'),
-          (GrafikPage(), 'Grafik'),
+          (ChartPage(), 'Grafik'),
         ];
       case null:
         return [];

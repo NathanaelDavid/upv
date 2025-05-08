@@ -49,8 +49,8 @@ class MarketingPage extends StatelessWidget {
           sectionText(
               'Lokasi: Pasar Baru lantai 3 Blok C2 No. 60 Jl. Otto Iskandardinata No. 70, Bandung.'),
           const Divider(height: 32),
-          sectionTitle('Kurs Mata Uang'),
-          const SizedBox(height: 8),
+          // sectionTitle('Kurs Mata Uang'),
+          // const SizedBox(height: 8),
           CurrencyWidget(),
           const Divider(height: 32),
           sectionTitle('Galeri Perusahaan'),
