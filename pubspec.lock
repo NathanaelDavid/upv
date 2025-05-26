@@ -376,9 +376,3 @@ packages:
 sdks:
   dart: ">=3.7.0-0 <4.0.0"
   flutter: ">=3.22.0"
-flutter:
-  assets:
-    - lib/gambar/gambar_1.jpeg
-    - lib/gambar/gambar_2.jpeg
-    - lib/gambar/gambar_3.jpeg
-    - lib/gambar/gambar_4.jpeg

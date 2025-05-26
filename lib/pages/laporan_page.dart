@@ -157,7 +157,10 @@ class _LaporanPageState extends State<LaporanPage> {
     final monthLabel = DateFormat.yMMMM().format(selectedMonth);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan Harga Beli dan Jual')),
+      appBar: AppBar(
+        title: const Text('Laporan Harga Beli dan Jual'),
+        centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

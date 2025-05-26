@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart'; // Tambahkan ini
 import 'package:upv/firebase_options.dart';
 import 'package:upv/pages/login_page.dart';
 import 'package:upv/pages/app.dart';
@@ -7,7 +8,8 @@ import 'package:upv/pages/app.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(MyApp());
+  await initializeDateFormatting('id_ID', null);
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

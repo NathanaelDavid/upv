@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
-import 'package:upv/util/currency_service.dart';
-import 'package:upv/util/report_service.dart';
 
 class LaporanBeliPage extends StatefulWidget {
   const LaporanBeliPage({super.key});
@@ -26,9 +25,6 @@ class _ChartData {
 }
 
 class _LaporanBeliPageState extends State<LaporanBeliPage> {
-  final _currencyService = CurrencyService();
-  final _reportService = ReportService();
-
   String? selectedCurrency;
   DateTime selectedMonth = DateTime.now();
   List<String> currencies = [];
@@ -44,12 +40,16 @@ class _LaporanBeliPageState extends State<LaporanBeliPage> {
 
   Future<void> _loadCurrencies() async {
     try {
-      final currenciesData = await _currencyService.getAllCurrencies();
-      final currenciesList =
-          currenciesData.map((currency) => currency.kode).toSet().toList();
+      final snapshot =
+          await FirebaseFirestore.instance.collection('transaksi').get();
+      final allCurrencies = snapshot.docs
+          .map((doc) => doc['kode_mata_uang'] as String?)
+          .whereType<String>()
+          .toSet()
+          .toList();
 
       setState(() {
-        currencies.addAll(currenciesList);
+        currencies.addAll(allCurrencies);
         selectedCurrency = currencies.isNotEmpty ? currencies.first : null;
       });
 
@@ -68,28 +68,65 @@ class _LaporanBeliPageState extends State<LaporanBeliPage> {
     });
 
     try {
+      DateTime start = DateTime(selectedMonth.year, selectedMonth.month);
+      DateTime end = DateTime(selectedMonth.year, selectedMonth.month + 1);
+
+      Query query = FirebaseFirestore.instance
+          .collection('transaksi')
+          .where('kode_transaksi', isEqualTo: 'Beli')
+          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+          .where('timestamp', isLessThan: Timestamp.fromDate(end));
+
       if (selectedCurrency != null) {
-        final startDate = DateTime(selectedMonth.year, selectedMonth.month);
-        final endDate = DateTime(selectedMonth.year, selectedMonth.month + 1);
-        final startDateString = DateFormat('yyyy-MM-dd').format(startDate);
-        final endDateString = DateFormat('yyyy-MM-dd').format(endDate);
-        final reportData = await _reportService.getReports(
-            selectedCurrency!, "purchases", startDateString, endDateString);
-
-        final List<_ChartData> result = reportData.map((data) {
-          return _ChartData(
-            date: DateTime.parse(data.date),
-            avgHarga: data.totalJumlahBarang.toDouble() /
-                data.totalNominal.toDouble(),
-            totalNominal: data.totalNominal.toDouble(),
-            jumlahBarang: data.totalJumlahBarang.toDouble(),
-          );
-        }).toList();
-
-        setState(() {
-          chartData = result;
-        });
+        query = query.where('kode_mata_uang', isEqualTo: selectedCurrency);
       }
+
+      final snapshot = await query.orderBy('timestamp').get();
+
+      final grouped = <DateTime, List<DocumentSnapshot>>{};
+
+      for (var doc in snapshot.docs) {
+        final timestamp = doc['timestamp'] as Timestamp?;
+        if (timestamp == null) continue;
+        final date = DateTime(
+          timestamp.toDate().year,
+          timestamp.toDate().month,
+          timestamp.toDate().day,
+        );
+        grouped.putIfAbsent(date, () => []).add(doc);
+      }
+
+      final List<_ChartData> result = [];
+      grouped.forEach((date, docs) {
+        double totalNominal = 0;
+        double totalHarga = 0;
+        double totalQty = 0;
+        int count = 0;
+
+        for (var doc in docs) {
+          final harga = (doc['harga'] ?? 0).toDouble();
+          final nominal = (doc['total_nominal'] ?? 0).toDouble();
+          final qty = (doc['jumlah_barang'] ?? 0).toDouble();
+
+          totalHarga += harga;
+          totalNominal += nominal;
+          totalQty += qty;
+          count++;
+        }
+
+        result.add(
+          _ChartData(
+            date: date,
+            avgHarga: count > 0 ? totalHarga / count : 0,
+            totalNominal: totalNominal,
+            jumlahBarang: totalQty,
+          ),
+        );
+      });
+
+      setState(() {
+        chartData = result;
+      });
     } catch (e) {
       setState(() {
         errorMessage = 'Gagal memuat data: $e';
@@ -130,7 +167,10 @@ class _LaporanBeliPageState extends State<LaporanBeliPage> {
     final monthLabel = DateFormat.yMMMM().format(selectedMonth);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan Pembelian')),
+      appBar: AppBar(
+        title: const Text('Laporan Pembelian'),
+        centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

@@ -23,6 +23,7 @@ class _GrafikStokPageState extends State<GrafikStokPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Kurs Mata Uang'),
+        centerTitle: true,
       ),
       body: Row(
         children: [

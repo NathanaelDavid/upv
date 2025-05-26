@@ -15,6 +15,7 @@ import 'package:upv/pages/CompanyProfilePage.dart';
 import 'package:upv/pages/laporan_page.dart';
 import 'package:upv/pages/laporan_jual_page.dart';
 import 'package:upv/pages/laporan_beli_page.dart';
+import 'package:upv/pages/laporan_bulan_page.dart';
 import 'package:upv/widgets/navigation_buttons.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -152,12 +153,13 @@ class _AppState extends State<App> {
           (CompanyProfilePage(), 'Company Profile'),
           (HomePage(), 'Home'),
           (ChatPage(userRole: _userRole), 'Chat'),
-          (ChartPage(), 'Grafik'),
+          (ChartPage(), 'Grafik Kurs'),
           (GrafikStokPage(), 'Kurs'),
           (TransaksiPage(), 'Transaksi'),
           (LaporanPage(), 'Laporan Kurs'),
           (LaporanJualPage(), 'Laporan Jual'),
           (LaporanBeliPage(), 'Laporan Beli'),
+          (LaporanBulanPage(), 'Laporan Bulanan'),
           // (
           //   CurrencyAnalysisPage(onNavigate: (p0) => 0, selectedIndex: 0),
           //   'Analisis'
@@ -165,23 +167,24 @@ class _AppState extends State<App> {
         ];
       case 'admin':
         return [
+          (CompanyProfilePage(), 'Company Profile'),
           (HomePage(), 'Home'),
           (ChatPage(userRole: _userRole), 'Chat'),
-          (ChartPage(), 'Chart'),
+          (ChartPage(), 'Grafik Kurs'),
           (TransaksiPage(), 'Transaksi'),
         ];
       case 'user':
         return [
+          (CompanyProfilePage(), 'Company Profile'),
           (HomePage(), 'Home'),
           (ChatPage(userRole: _userRole), 'Chat'),
-          (ChartPage(), 'Grafik'),
+          (ChartPage(), 'Grafik Kurs'),
         ];
       case null:
         return [];
       default:
         return [
           (HomePage(), 'Home'),
-          (ChatPage(userRole: _userRole), 'Chat'),
           (GrafikPage(), 'Grafik'),
         ];
     }

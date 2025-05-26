@@ -92,6 +92,10 @@ class _ChartPageState extends State<ChartPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Grafik Kurs Real time'),
+        centerTitle: true,
+      ),
       body: Row(
         children: [
           Container(
