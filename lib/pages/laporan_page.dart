@@ -38,57 +38,95 @@ class _LaporanPageState extends State<LaporanPage> {
 
   Future<void> _loadCurrencies() async {
     try {
-      final snapshot =
-          await FirebaseFirestore.instance.collection('stocks').get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('stocks')
+          .get(); // Target collection 'stocks'
       final allCurrencies = snapshot.docs
-          .map((doc) => doc['kodeMataUang'] as String?)
+          .map((doc) => doc['kodeMataUang'] as String?) // Field 'kodeMataUang'
           .whereType<String>()
           .toSet()
           .toList();
 
+      currencies.clear(); // Pastikan list kosong sebelum diisi ulang
+      currencies.addAll(allCurrencies);
+
       setState(() {
-        currencies.addAll(allCurrencies);
-        selectedCurrency = currencies.isNotEmpty ? currencies.first : null;
+        if (currencies.isNotEmpty && selectedCurrency == null) {
+          selectedCurrency = currencies.first;
+        }
       });
 
-      await _loadChartData();
+      if (selectedCurrency != null) {
+        await _loadChartData();
+      } else if (currencies.isEmpty) {
+        setState(() {
+          errorMessage =
+              'Tidak ada data mata uang ditemukan di collection stocks.';
+          isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         errorMessage = 'Gagal memuat mata uang: $e';
+        isLoading = false;
       });
     }
   }
 
   Future<void> _loadChartData() async {
+    if (selectedCurrency == null && currencies.isNotEmpty) {
+      setState(() {
+        selectedCurrency = currencies.first;
+      });
+    } else if (selectedCurrency == null && currencies.isEmpty) {
+      setState(() {
+        isLoading = false;
+        chartData = [];
+        errorMessage =
+            'Pilih mata uang terlebih dahulu (tidak ada mata uang tersedia).';
+      });
+      return;
+    }
+
     setState(() {
       isLoading = true;
       errorMessage = null;
+      chartData = [];
     });
 
     try {
       DateTime start = DateTime(selectedMonth.year, selectedMonth.month);
       DateTime end = DateTime(selectedMonth.year, selectedMonth.month + 1);
 
-      // Create query for fetching data from Firestore based on 'stocks'
       Query query = FirebaseFirestore.instance
-          .collection('stocks')
-          .where('tanggal', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+          .collection('stocks') // Target collection 'stocks'
+          .where('tanggal',
+              isGreaterThanOrEqualTo:
+                  Timestamp.fromDate(start)) // Field 'tanggal'
           .where('tanggal', isLessThan: Timestamp.fromDate(end));
 
-      // Apply currency filter if a currency is selected
       if (selectedCurrency != null) {
-        query = query.where('kodeMataUang', isEqualTo: selectedCurrency);
+        query = query.where('kodeMataUang',
+            isEqualTo: selectedCurrency); // Field 'kodeMataUang'
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Mata uang belum dipilih.';
+        });
+        return;
       }
 
       final snapshot = await query.orderBy('tanggal').get();
-
       final grouped = <DateTime, List<DocumentSnapshot>>{};
 
       for (var doc in snapshot.docs) {
-        final timestamp = doc['tanggal'] as Timestamp?;
+        final timestamp = doc['tanggal'] as Timestamp?; // Field 'tanggal'
         if (timestamp == null) continue;
-        final date = DateTime(timestamp.toDate().year, timestamp.toDate().month,
-            timestamp.toDate().day);
+        final date = DateTime(
+          timestamp.toDate().year,
+          timestamp.toDate().month,
+          timestamp.toDate().day,
+        );
         grouped.putIfAbsent(date, () => []).add(doc);
       }
 
@@ -96,30 +134,45 @@ class _LaporanPageState extends State<LaporanPage> {
       grouped.forEach((date, docs) {
         double totalHargaBeli = 0;
         double totalHargaJual = 0;
+        int countBeli = 0;
+        int countJual = 0;
 
         for (var doc in docs) {
-          final hargaBeli = (doc['hargaBeli'] ?? 0).toDouble();
-          final hargaJual = (doc['hargaJual'] ?? 0).toDouble();
+          final hargaBeli =
+              (doc['hargaBeli'] ?? 0).toDouble(); // Field 'hargaBeli'
+          final hargaJual =
+              (doc['hargaJual'] ?? 0).toDouble(); // Field 'hargaJual'
 
-          totalHargaBeli += hargaBeli;
-          totalHargaJual += hargaJual;
+          if (doc['hargaBeli'] != null) {
+            totalHargaBeli += hargaBeli;
+            countBeli++;
+          }
+          if (doc['hargaJual'] != null) {
+            totalHargaJual += hargaJual;
+            countJual++;
+          }
         }
+
+        // Menggunakan total harga. Jika ingin rata-rata, gunakan baris di bawah:
+        // double avgHargaBeli = countBeli > 0 ? totalHargaBeli / countBeli : 0;
+        // double avgHargaJual = countJual > 0 ? totalHargaJual / countJual : 0;
 
         result.add(
           _ChartData(
             date: date,
-            hargaBeli: totalHargaBeli,
-            hargaJual: totalHargaJual,
+            hargaBeli: totalHargaBeli, // atau avgHargaBeli
+            hargaJual: totalHargaJual, // atau avgHargaJual
           ),
         );
       });
+      result.sort((a, b) => a.date.compareTo(b.date));
 
       setState(() {
         chartData = result;
       });
     } catch (e) {
       setState(() {
-        errorMessage = 'Gagal memuat data: $e';
+        errorMessage = 'Gagal memuat data harga dari stocks: $e';
       });
     } finally {
       setState(() {
@@ -134,14 +187,8 @@ class _LaporanPageState extends State<LaporanPage> {
       initialDate: selectedMonth,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      helpText: 'Pilih Bulan',
+      helpText: 'Pilih Bulan Laporan',
       fieldHintText: 'Bulan/Tahun',
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -152,13 +199,161 @@ class _LaporanPageState extends State<LaporanPage> {
     }
   }
 
+  Widget _buildHargaBeliJualChart() {
+    return SfCartesianChart(
+      primaryXAxis: DateTimeAxis(
+        dateFormat: DateFormat.d(),
+        intervalType: DateTimeIntervalType.days,
+      ),
+      primaryYAxis: NumericAxis(
+        title: AxisTitle(text: 'Harga'),
+        numberFormat:
+            NumberFormat.compactSimpleCurrency(locale: 'id_ID', name: ''),
+      ),
+      title: ChartTitle(text: 'Grafik Harga Beli dan Jual Harian'),
+      legend: const Legend(isVisible: true, position: LegendPosition.bottom),
+      tooltipBehavior: TooltipBehavior(
+          enable: true, header: '', canShowMarker: false, shared: true),
+      series: <CartesianSeries<_ChartData, DateTime>>[
+        LineSeries<_ChartData, DateTime>(
+          name: 'Harga Beli',
+          dataSource: chartData,
+          xValueMapper: (data, _) => data.date,
+          yValueMapper: (data, _) => data.hargaBeli,
+          color: Colors.blue,
+          markerSettings: const MarkerSettings(isVisible: true),
+          emptyPointSettings: EmptyPointSettings(mode: EmptyPointMode.drop),
+        ),
+        LineSeries<_ChartData, DateTime>(
+          name: 'Harga Jual',
+          dataSource: chartData,
+          xValueMapper: (data, _) => data.date,
+          yValueMapper: (data, _) => data.hargaJual,
+          color: Colors.red,
+          markerSettings: const MarkerSettings(isVisible: true),
+          emptyPointSettings: EmptyPointSettings(mode: EmptyPointMode.drop),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final monthLabel = DateFormat.yMMMM().format(selectedMonth);
+    final monthLabel = DateFormat.yMMMM('id_ID').format(selectedMonth);
+    // final screenWidth = MediaQuery.of(context).size.width; // Tidak lagi digunakan secara langsung untuk logic ini
+    // final bool isVeryWideScreenForTableCentering = screenWidth > 900; // Tidak lagi digunakan untuk keputusan ini
+
+    Widget mainContent;
+
+    if (isLoading) {
+      mainContent =
+          const Expanded(child: Center(child: CircularProgressIndicator()));
+    } else if (errorMessage != null) {
+      mainContent = Expanded(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              errorMessage!,
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    } else if (chartData.isEmpty) {
+      mainContent = const Expanded(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Tidak ada data harga untuk periode dan mata uang terpilih.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Lebar maksimum tabel, sesuaikan jika perlu agar nyaman di mobile dan tetap baik di web.
+      const double maxTableSectionWidth = 700.0;
+
+      // Kolom untuk judul rekap dan tabel data.
+      // CrossAxisAlignment.start agar judul rata kiri di dalam ConstrainedBox.
+      Widget recapColumn = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Rekapitulasi Harga Harian',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columnSpacing: 20,
+              headingRowColor: MaterialStateColor.resolveWith(
+                  (states) => Theme.of(context).colorScheme.primaryContainer),
+              columns: const [
+                DataColumn(
+                    label: Text('Tanggal',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('Harga Beli',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    numeric: true),
+                DataColumn(
+                    label: Text('Harga Jual',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    numeric: true),
+              ],
+              rows: chartData.map((data) {
+                return DataRow(
+                  cells: [
+                    DataCell(Text(
+                        DateFormat('dd MMM yy', 'id_ID').format(data.date))),
+                    DataCell(Text(NumberFormat.currency(
+                            locale: 'id_ID', symbol: '', decimalDigits: 2)
+                        .format(data.hargaBeli))),
+                    DataCell(Text(NumberFormat.currency(
+                            locale: 'id_ID', symbol: '', decimalDigits: 2)
+                        .format(data.hargaJual))),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      );
+
+      // Selalu bungkus bagian rekapitulasi dengan Align dan ConstrainedBox
+      // untuk membuatnya di tengah dengan lebar maksimum yang ditentukan.
+      Widget finalRecapSection = Align(
+        alignment: Alignment.center,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: maxTableSectionWidth),
+          child: recapColumn,
+        ),
+      );
+
+      mainContent = Expanded(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment
+                .stretch, // Agar Align (dan chart) mengambil lebar penuh
+            children: [
+              SizedBox(height: 350, child: _buildHargaBeliJualChart()),
+              const SizedBox(height: 24),
+              finalRecapSection, // Bagian rekapitulasi yang sekarang selalu di tengah
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Laporan Harga Beli dan Jual'),
+        title: const Text('Laporan Harga Beli & Jual'),
         centerTitle: true,
       ),
       body: Padding(
@@ -168,9 +363,17 @@ class _LaporanPageState extends State<LaporanPage> {
             Row(
               children: [
                 Expanded(
-                  child: DropdownButton<String>(
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Mata Uang',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                    ),
                     isExpanded: true,
                     value: selectedCurrency,
+                    hint: const Text('Pilih Mata Uang'),
                     onChanged: (value) {
                       if (value != null) {
                         setState(() => selectedCurrency = value);
@@ -187,92 +390,14 @@ class _LaporanPageState extends State<LaporanPage> {
                   onPressed: () => _selectMonth(context),
                   icon: const Icon(Icons.calendar_today),
                   label: Text(monthLabel),
+                  style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12)),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            if (errorMessage != null)
-              Text(errorMessage!, style: const TextStyle(color: Colors.red)),
-            if (isLoading)
-              const CircularProgressIndicator()
-            else if (chartData.isEmpty)
-              const Text('Tidak ada data harga beli dan jual.')
-            else ...[
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SfCartesianChart(
-                        primaryXAxis: DateTimeAxis(),
-                        primaryYAxis: NumericAxis(
-                          title: AxisTitle(text: 'Harga Beli'),
-                        ),
-                        title: ChartTitle(text: 'Grafik Harga Beli'),
-                        tooltipBehavior: TooltipBehavior(enable: true),
-                        series: <CartesianSeries<_ChartData, DateTime>>[
-                          LineSeries<_ChartData, DateTime>(
-                            name: 'Harga Beli',
-                            dataSource: chartData,
-                            xValueMapper: (data, _) => data.date,
-                            yValueMapper: (data, _) => data.hargaBeli,
-                            markerSettings:
-                                const MarkerSettings(isVisible: true),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: SfCartesianChart(
-                        primaryXAxis: DateTimeAxis(),
-                        primaryYAxis: NumericAxis(
-                          title: AxisTitle(text: 'Harga Jual'),
-                        ),
-                        title: ChartTitle(text: 'Grafik Harga Jual'),
-                        tooltipBehavior: TooltipBehavior(enable: true),
-                        series: <CartesianSeries<_ChartData, DateTime>>[
-                          LineSeries<_ChartData, DateTime>(
-                            name: 'Harga Jual',
-                            dataSource: chartData,
-                            xValueMapper: (data, _) => data.date,
-                            yValueMapper: (data, _) => data.hargaJual,
-                            markerSettings:
-                                const MarkerSettings(isVisible: true),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Rekapitulasi Harga Beli dan Jual',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Tanggal')),
-                      DataColumn(label: Text('Harga Beli')),
-                      DataColumn(label: Text('Harga Jual')),
-                    ],
-                    rows: chartData.map((data) {
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                              Text(DateFormat('dd MMM').format(data.date))),
-                          DataCell(Text(data.hargaBeli.toStringAsFixed(2))),
-                          DataCell(Text(data.hargaJual.toStringAsFixed(2))),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ],
+            mainContent,
           ],
         ),
       ),

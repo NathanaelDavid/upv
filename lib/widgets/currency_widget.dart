@@ -47,17 +47,9 @@ class _KursStockWidgetState extends State<CurrencyWidget> {
         if (groupedStock.containsKey(kode)) {
           var existingStock = groupedStock[kode]!;
 
-          double updatedJumlah = existingStock.jumlahStok;
-          if (transaksi.jenis == 'beli') {
-            updatedJumlah += jumlah;
-          } else if (transaksi.jenis == 'jual') {
-            updatedJumlah -= jumlah;
-          }
-
           groupedStock[kode] = StockPublic(
             id: existingStock.id,
             kodeMataUang: existingStock.kodeMataUang,
-            jumlahStok: updatedJumlah,
             hargaBeli: existingStock.hargaBeli,
             hargaJual: existingStock.hargaJual,
             tanggal: existingStock.tanggal,

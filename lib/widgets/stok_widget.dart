@@ -23,8 +23,6 @@ class _StokWidgetState extends State<StokWidget> {
   void _showStockForm({StockPublic? stock}) {
     final kodeController =
         TextEditingController(text: stock?.kodeMataUang ?? '');
-    final jumlahController =
-        TextEditingController(text: stock?.jumlahStok.toString() ?? '');
     final hargaBeliController =
         TextEditingController(text: stock?.hargaBeli.toString() ?? '');
     final hargaJualController =
@@ -36,25 +34,23 @@ class _StokWidgetState extends State<StokWidget> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(stock == null ? 'Tambah Stok' : 'Update Stok'),
+          title:
+              Text(stock == null ? 'Tambah Harga Mata Uang' : 'Update Harga'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                     controller: kodeController,
-                    decoration: InputDecoration(labelText: 'Kode Mata Uang')),
-                TextField(
-                    controller: jumlahController,
-                    decoration: InputDecoration(labelText: 'Jumlah Stok'),
-                    keyboardType: TextInputType.number),
+                    decoration:
+                        const InputDecoration(labelText: 'Kode Mata Uang')),
                 TextField(
                     controller: hargaBeliController,
-                    decoration: InputDecoration(labelText: 'Harga Beli'),
+                    decoration: const InputDecoration(labelText: 'Harga Beli'),
                     keyboardType: TextInputType.number),
                 TextField(
                     controller: hargaJualController,
-                    decoration: InputDecoration(labelText: 'Harga Jual'),
+                    decoration: const InputDecoration(labelText: 'Harga Jual'),
                     keyboardType: TextInputType.number),
                 const SizedBox(height: 8),
                 Row(
@@ -63,7 +59,7 @@ class _StokWidgetState extends State<StokWidget> {
                         "Tanggal: ${selectedTimestamp.toDate().toLocal().toString().split(' ')[0]}"),
                     const Spacer(),
                     TextButton(
-                      child: Text("Pilih Tanggal"),
+                      child: const Text("Pilih Tanggal"),
                       onPressed: () async {
                         final pickedDate = await showDatePicker(
                           context: context,
@@ -85,48 +81,30 @@ class _StokWidgetState extends State<StokWidget> {
           ),
           actions: [
             TextButton(
-                child: Text('Batal'),
+                child: const Text('Batal'),
                 onPressed: () => Navigator.of(context).pop()),
             ElevatedButton(
               child: Text(stock == null ? 'Tambah' : 'Update'),
               onPressed: () async {
                 if (kodeController.text.isEmpty ||
-                    jumlahController.text.isEmpty ||
                     hargaBeliController.text.isEmpty ||
                     hargaJualController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Semua field harus diisi!')));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Semua field harus diisi!')));
                   return;
                 }
 
-                final newStock = StockPublic(
-                  id: stock?.id ?? '',
-                  kodeMataUang: kodeController.text,
-                  jumlahStok: double.tryParse(jumlahController.text) ?? 0,
+                final stockData = StockCreate(
+                  kodeMataUang: kodeController.text.trim().toUpperCase(),
                   hargaBeli: double.tryParse(hargaBeliController.text) ?? 0,
                   hargaJual: double.tryParse(hargaJualController.text) ?? 0,
                   tanggal: selectedTimestamp,
                 );
 
                 if (stock == null) {
-                  await _stokService.createStock(StockCreate(
-                    kodeMataUang: newStock.kodeMataUang,
-                    jumlahStok: newStock.jumlahStok,
-                    hargaBeli: newStock.hargaBeli,
-                    hargaJual: newStock.hargaJual,
-                    tanggal: newStock.tanggal,
-                  ));
+                  await _stokService.createStock(stockData);
                 } else {
-                  await _stokService.updateStock(
-                    stock.id,
-                    StockCreate(
-                      kodeMataUang: newStock.kodeMataUang,
-                      jumlahStok: newStock.jumlahStok,
-                      hargaBeli: newStock.hargaBeli,
-                      hargaJual: newStock.hargaJual,
-                      tanggal: newStock.tanggal,
-                    ),
-                  );
+                  await _stokService.updateStock(stock.id, stockData);
                 }
 
                 setState(() {
@@ -147,11 +125,13 @@ class _StokWidgetState extends State<StokWidget> {
       future: _stocksFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else if (snapshot.hasData) {
           final stocks = snapshot.data!.data;
+          stocks.sort((a, b) =>
+              b.tanggal.toDate().compareTo(a.tanggal.toDate())); // urut terbaru
           return ListView.builder(
             itemCount: stocks.length,
             itemBuilder: (context, index) {
@@ -159,13 +139,16 @@ class _StokWidgetState extends State<StokWidget> {
               return ListTile(
                 title: Text('Mata Uang: ${stock.kodeMataUang}'),
                 subtitle: Text(
-                    'Jumlah: ${stock.jumlahStok} | Beli: ${stock.hargaBeli} | Jual: ${stock.hargaJual}\nTanggal: ${stock.tanggal.toDate().toLocal().toString().split(' ')[0]}'),
+                  'Harga Beli: ${stock.hargaBeli.toStringAsFixed(2)} | '
+                  'Harga Jual: ${stock.hargaJual.toStringAsFixed(2)}\n'
+                  'Tanggal: ${stock.tanggal.toDate().toLocal().toString().split(' ')[0]}',
+                ),
                 onTap: () => _showStockForm(stock: stock),
               );
             },
           );
         } else {
-          return Center(child: Text('Tidak ada data'));
+          return const Center(child: Text('Tidak ada data'));
         }
       },
     );

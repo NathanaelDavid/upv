@@ -25,19 +25,20 @@ class TransaksiPublic {
 
   /// Factory method untuk mengonversi dari Firestore document snapshot
   factory TransaksiPublic.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return TransaksiPublic(
       id: doc.id,
-      timestamp: data['timestamp'] ?? Timestamp.now(),
+      timestamp:
+          data['timestamp'] ?? Timestamp.now(), // Default ke now jika null
       kodeMataUang: data['kode_mata_uang'] ?? '',
-      kodeTransaksi: data['kode_transaksi'] ?? 'Beli',
-      jumlahBarang: (data['jumlah_barang'] ?? 0).toDouble(),
-      harga: (data['harga'] ?? 0).toDouble(),
-      totalNominal: (data['total_nominal'] ?? 0).toDouble(),
+      kodeTransaksi: data['kode_transaksi'] ?? 'Beli', // Default jika null
+      jumlahBarang: (data['jumlah_barang'] ?? 0.0).toDouble(),
+      harga: (data['harga'] ?? 0.0).toDouble(),
+      totalNominal: (data['total_nominal'] ?? 0.0).toDouble(),
     );
   }
 
-  /// Convert ke format Firestore
+  /// Convert ke format Firestore (Tidak secara eksplisit digunakan jika service menerima Map)
   Map<String, dynamic> toMap() {
     return {
       'timestamp': timestamp,
