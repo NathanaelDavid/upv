@@ -178,14 +178,8 @@ class _AppState extends State<App> {
           (const LaporanJualPage(), 'Lap. Jual'),
           (const LaporanBeliPage(), 'Lap. Beli'),
           (const LaporanBulanPage(), 'Lap. Bulan'),
-          (
-            const InvoicePage(),
-            'Invoice'
-          ), // Pastikan InvoicePage sudah diimport
-          (
-            const PrediksiPage(),
-            'Prediksi'
-          ), // Pastikan PrediksiPage sudah diimport
+          (const InvoicePage(), 'Invoice'),
+          (const PrediksiPage(), 'Prediksi'),
         ];
       case 'admin':
         return [
@@ -194,6 +188,8 @@ class _AppState extends State<App> {
           (ChatPage(userRole: _userRole!), 'Chat'),
           (chartPage, 'Grafik Kurs'),
           (const TransaksiPage(), 'Transaksi'),
+          (const LaporanBulanPage(), 'Lap. Bulan'),
+          (const InvoicePage(), 'Invoice'),
         ];
       case 'user':
         return [
