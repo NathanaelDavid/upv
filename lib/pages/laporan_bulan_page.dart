@@ -281,7 +281,7 @@ class _LaporanBulanPageState extends State<LaporanBulanPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Laporan Bulanan Global'),
+        title: const Text('Laporan Bulanan'),
         centerTitle: true,
       ),
       body: Padding(

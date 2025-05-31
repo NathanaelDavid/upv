@@ -221,7 +221,7 @@ class _ChatPageState extends State<ChatPage> {
       return _selectedChat == null ? 'Daftar Chat' : _selectedChat!.name;
     } else {
       // Untuk layar lebar, judul bisa lebih umum karena kedua panel terlihat
-      return 'Percakapan';
+      return 'Chat';
     }
   }
 

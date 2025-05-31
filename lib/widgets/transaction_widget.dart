@@ -447,8 +447,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
                   height: 20,
                   child: CircularProgressIndicator(
                       strokeWidth: 3, color: Colors.white))
-              : Text(
-                  _editingId == null ? 'Input Transaksi' : 'Update Transaksi'),
+              : Text(_editingId == null ? 'Input' : 'Update Transaksi'),
         ),
         if (_editingId != null) ...[
           const SizedBox(height: 8),

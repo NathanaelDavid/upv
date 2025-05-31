@@ -28,7 +28,7 @@ class _GrafikStokPageState extends State<GrafikStokPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manajemen Stok & Kurs'),
+        title: const Text('Manajemen Kurs'),
         centerTitle: true,
         // Warna AppBar akan mengikuti tema global aplikasi Anda
       ),

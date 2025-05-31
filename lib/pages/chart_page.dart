@@ -321,7 +321,7 @@ class _ChartPageState extends State<ChartPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Grafik Kurs Real-time',
+              'Grafik Kurs',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: primaryColor,
                     fontWeight: FontWeight.bold,

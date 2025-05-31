@@ -1,22 +1,23 @@
+// lib/app.dart (atau di mana pun file App Anda berada)
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-// import 'package:upv/pages/grafik_api_page.dart'; // Uncomment jika digunakan
+import 'package:upv/pages/invoice_page.dart';
 import 'package:upv/pages/login_page.dart';
 import 'package:upv/pages/marketing_page.dart';
+import 'package:upv/pages/prediksi_page.dart';
 import 'package:upv/pages/transaksi_page.dart';
 import 'package:upv/pages/chat_page.dart';
-// import 'package:upv/pages/currency_analysis_page.dart'; // Uncomment jika digunakan
-import 'package:upv/pages/grafik_page.dart'; // Pastikan digunakan atau hapus jika tidak
+import 'package:upv/pages/grafik_page.dart';
 import 'package:upv/pages/grafik_stok_page.dart';
 import 'package:upv/pages/home_page.dart';
 import 'package:upv/pages/chart_page.dart';
-import 'package:upv/pages/CompanyProfilePage.dart'; // Pastikan nama file konsisten (CompanyProfilePage.dart)
+import 'package:upv/pages/CompanyProfilePage.dart';
 import 'package:upv/pages/laporan_page.dart';
 import 'package:upv/pages/laporan_jual_page.dart';
 import 'package:upv/pages/laporan_beli_page.dart';
 import 'package:upv/pages/laporan_bulan_page.dart';
-import 'package:upv/widgets/navigation_buttons.dart'; // Widget navigasi Anda
+import 'package:upv/widgets/navigation_buttons.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class App extends StatefulWidget {
@@ -32,6 +33,10 @@ class _AppState extends State<App> {
   bool _isLoading = true;
   late final StreamSubscription<User?> _authSubscription;
 
+  // --- TAMBAHKAN STATE UNTUK VISIBILITAS NAVBAR ---
+  bool _isNavbarVisible = true;
+  // Atur ke false jika Anda ingin navbar tersembunyi secara default saat login
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +49,8 @@ class _AppState extends State<App> {
           _userRole = null;
           _isLoading = false;
           _selectedIndex = 0;
+          _isNavbarVisible =
+              false; // Navbar tidak relevan jika belum login & di marketing page
         });
       } else {
         setState(() {
@@ -55,6 +62,7 @@ class _AppState extends State<App> {
           _selectedIndex = 0;
           _userRole = role;
           _isLoading = false;
+          _isNavbarVisible = true; // Tampilkan navbar saat pengguna login
         });
       }
     });
@@ -67,6 +75,7 @@ class _AppState extends State<App> {
   }
 
   Future<String> _getUserRole(String userId) async {
+    // ... (fungsi ini tetap sama)
     try {
       FirebaseFirestore firestore = FirebaseFirestore.instance;
       DocumentSnapshot userDoc =
@@ -84,7 +93,16 @@ class _AppState extends State<App> {
     return 'user';
   }
 
+  // --- FUNGSI UNTUK TOGGLE NAVBAR ---
+  void _toggleNavbarVisibility() {
+    if (!mounted) return;
+    setState(() {
+      _isNavbarVisible = !_isNavbarVisible;
+    });
+  }
+
   Widget _buildLoggedOutActions(BuildContext context) {
+    // ... (fungsi ini tetap sama)
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: TextButton(
@@ -108,13 +126,13 @@ class _AppState extends State<App> {
   }
 
   Widget _buildLoggedInActions() {
+    // ... (fungsi ini tetap sama)
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: PopupMenuButton<String>(
         icon: const Icon(
           Icons.account_circle,
-          color: Colors.white,
-          size: 28,
+          // warna ikon akan mengikuti actionsIconTheme di AppBar
         ),
         position: PopupMenuPosition.under,
         onSelected: (value) async {
@@ -142,6 +160,7 @@ class _AppState extends State<App> {
   }
 
   List<(Widget, String)> _getWidgetOptions() {
+    // ... (fungsi ini tetap sama, pastikan sudah ada InvoicePage & PrediksiPage)
     final companyProfilePage = CompanyProfilePage();
     const homePage = HomePage();
     const chartPage = ChartPage();
@@ -153,12 +172,20 @@ class _AppState extends State<App> {
           (homePage, 'Home'),
           (ChatPage(userRole: _userRole!), 'Chat'),
           (chartPage, 'Grafik Kurs'),
-          (const GrafikStokPage(), 'Stok Kurs'),
+          (const GrafikStokPage(), 'Kurs'),
           (const TransaksiPage(), 'Transaksi'),
           (const LaporanPage(), 'Lap. Kurs'),
           (const LaporanJualPage(), 'Lap. Jual'),
           (const LaporanBeliPage(), 'Lap. Beli'),
           (const LaporanBulanPage(), 'Lap. Bulan'),
+          (
+            const InvoicePage(),
+            'Invoice'
+          ), // Pastikan InvoicePage sudah diimport
+          (
+            const PrediksiPage(),
+            'Prediksi'
+          ), // Pastikan PrediksiPage sudah diimport
         ];
       case 'admin':
         return [
@@ -188,6 +215,7 @@ class _AppState extends State<App> {
   }
 
   void _onItemTapped(int index) {
+    // ... (fungsi ini tetap sama)
     final options = _getWidgetOptions();
     if (index >= 0 && index < options.length) {
       setState(() {
@@ -200,54 +228,54 @@ class _AppState extends State<App> {
 
   Widget _getBody() {
     if (_userRole == null) {
+      // Untuk MarketingPage, kita tidak menampilkan navbar
       return MarketingPage();
     }
 
     final widgetOptions = _getWidgetOptions();
 
     if (widgetOptions.isEmpty) {
-      print(
-          "Peringatan: Pengguna login tapi tidak ada opsi widget untuk peran: $_userRole");
-      return const Center(
+      return Center(
           child: Text("Tidak ada halaman tersedia untuk peran Anda."));
     }
 
     if (_selectedIndex >= widgetOptions.length) {
-      print(
-          "Peringatan: _selectedIndex ${_selectedIndex} di luar batas (${widgetOptions.length}). Reset ke 0.");
       _selectedIndex = 0;
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Container untuk area navigasi
-        Container(
-          padding: const EdgeInsets.symmetric(
-              vertical: 8.0,
-              horizontal: 8.0), // Padding di sekitar NavigationButtons
-          decoration: BoxDecoration(
-            color: Colors.white, // Latar belakang untuk bar navigasi
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.2),
-                spreadRadius: 1,
-                blurRadius: 3,
-                offset:
-                    const Offset(0, 2), // Bayangan lembut di bawah bar navigasi
-              ),
-            ],
-          ),
-          // Langsung gunakan NavigationButtons.
-          // Karena NavigationButtons sekarang menggunakan Wrap, ia akan mengatur tingginya sendiri.
-          // SingleChildScrollView(scrollDirection: Axis.horizontal) tidak lagi diperlukan di sini.
-          child: NavigationButtons(
-            onItemTapped: _onItemTapped,
-            selectedIndex: _selectedIndex,
-            menus: widgetOptions.map((e) => e.$2).toList(),
+        // --- GUNAKAN Visibility UNTUK NAVBAR ---
+        Visibility(
+          visible: _isNavbarVisible,
+          // MaintainSize, maintainAnimation, maintainState bisa diatur jika perlu
+          // untuk menjaga state navbar saat disembunyikan, tapi untuk kasus sederhana
+          // cukup visible saja.
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .cardColor, // Warna latar yang lebih sesuai tema
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: NavigationButtons(
+              onItemTapped: _onItemTapped,
+              selectedIndex: _selectedIndex,
+              menus: widgetOptions.map((e) => e.$2).toList(),
+            ),
           ),
         ),
-        // const Divider(height: 1, thickness: 1), // Opsional: pemisah visual
+        // Opsional: Pemisah jika navbar terlihat
+        if (_isNavbarVisible) const Divider(height: 1, thickness: 1),
+
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
@@ -270,12 +298,38 @@ class _AppState extends State<App> {
       );
     }
 
+    // Warna untuk AppBar Title dan Icons agar kontras dengan background AppBar
+    const Color appBarContentColor = Colors.white;
+
     return Scaffold(
         appBar: AppBar(
-            title: const Text('Untung Prima Valasindo',
-                overflow: TextOverflow.ellipsis),
-            backgroundColor: const Color.fromARGB(230, 48, 37, 201),
+            title: const Text(
+              'Untung Prima Valasindo',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: appBarContentColor,
+                  fontWeight: FontWeight.bold), // Style untuk title
+            ),
+            backgroundColor: const Color.fromARGB(
+                255, 48, 37, 201), // Warna background AppBar
+            iconTheme: const IconThemeData(
+                color: appBarContentColor), // Untuk leading icon jika ada
+            actionsIconTheme: const IconThemeData(
+                color: appBarContentColor), // Untuk icons di actions
             actions: [
+              // --- TAMBAHKAN TOMBOL TOGGLE NAVBAR JIKA PENGGUNA LOGIN ---
+              if (_userRole != null) // Hanya tampilkan jika sudah login
+                IconButton(
+                  icon: Icon(
+                    _isNavbarVisible
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                  tooltip: _isNavbarVisible
+                      ? 'Sembunyikan Navigasi'
+                      : 'Tampilkan Navigasi',
+                  onPressed: _toggleNavbarVisibility,
+                ),
               if (_userRole == null)
                 _buildLoggedOutActions(context)
               else
