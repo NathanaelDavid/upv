@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'upv-database.firebasestorage.app',
     measurementId: 'G-SSP87STMMN',
   );
+
 }

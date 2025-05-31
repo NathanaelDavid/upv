@@ -144,7 +144,7 @@ class _KursStockWidgetState extends State<KursStockWidget> {
               width: double.infinity,
               child: DataTable(
                 columnSpacing: 20, // Adjust spacing
-                headingRowColor: MaterialStateColor.resolveWith(
+                headingRowColor: WidgetStateColor.resolveWith(
                     (states) => const Color.fromARGB(88, 206, 229, 248)),
                 columns: const [
                   DataColumn(

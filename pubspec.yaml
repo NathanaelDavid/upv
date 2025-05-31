@@ -48,6 +48,33 @@ dependencies:
   
 
 dev_dependencies:
+  flutter_launcher_icons: "^0.13.1"
+
+flutter_launcher_icons:
+  # Konfigurasi Global (berlaku jika tidak di-override oleh platform spesifik)
+  image_path: "lib/gambar/UPV.png" # Path ke gambar master Anda
+
+  # Konfigurasi Android
+  android: true # Atau bisa juga nama file ikon spesifik jika tidak ingin default "launcher_icon"
+  min_sdk_android: 21 # Minimum SDK Android Anda
+
+  # Konfigurasi iOS
+  ios: true
+  # remove_alpha_ios: true # Hilangkan ini jika PNG Anda tidak memiliki transparansi atau Anda ingin iOS menanganinya
+
+  # Konfigurasi Web (untuk favicon, PWA icons, dll.)
+  web:
+    generate: true
+    # image_path: "lib/gambar/UPV_web.png" # Opsional: Gunakan gambar berbeda untuk web jika perlu
+    background_color: "#FFFFFF" # Warna latar belakang untuk PWA (putih)
+    theme_color: "#0D47A1"     # Warna tema untuk PWA (contoh: biru tua, sesuaikan dengan biru logo Anda)
+
+  # Konfigurasi Windows (untuk ikon aplikasi .exe)
+  windows:
+    generate: true
+    # image_path: "lib/gambar/UPV_windows.png" # Opsional: Gunakan gambar berbeda untuk Windows
+    icon_size: 48
+
   flutter_test:
     sdk: flutter
 
@@ -85,6 +112,8 @@ flutter:
     - lib/gambar/prediksi_stok_SGD.png
     - lib/gambar/prediksi_stok_THB.png
     - lib/gambar/prediksi_stok_USD.png
+    - lib/gambar/UPV.png
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -53,9 +53,9 @@ class NavigationButtons extends StatelessWidget {
               elevation: isSelected ? 4.0 : 2.0,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ).copyWith(
-              overlayColor: MaterialStateProperty.resolveWith<Color?>(
-                (Set<MaterialState> states) {
-                  if (states.contains(MaterialState.pressed)) {
+              overlayColor: WidgetStateProperty.resolveWith<Color?>(
+                (Set<WidgetState> states) {
+                  if (states.contains(WidgetState.pressed)) {
                     return isSelected
                         ? Colors.white.withOpacity(0.12)
                         : appPrimaryColor.withOpacity(0.12);

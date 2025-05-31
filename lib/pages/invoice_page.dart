@@ -226,7 +226,7 @@ class _InvoicePageState extends State<InvoicePage> {
                       final t = items[index];
                       return [
                         (index + 1).toString(),
-                        '${t.kodeTransaksi.toUpperCase()} ${t.kodeMataUang.toUpperCase()}\n(Tgl: ${DateFormat('dd/MM/yy HH:mm', "id_ID").format(t.timestamp.toDate())})',
+                        '${t.kodeTransaksi.toUpperCase()} ${t.kodeMataUang.toUpperCase()}',
                         _numberFormatter.format(t.jumlahBarang),
                         _currencyFormatter
                             .format(t.harga)

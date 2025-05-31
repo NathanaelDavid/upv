@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import untuk FilteringTextInputFormatter
 import 'package:intl/intl.dart';
-import '../models/models_stok.dart'; // Pastikan path ini benar
+// Pastikan path ini benar
 import '../util/stok_service.dart'; // Pastikan path ini benar
 
 class CurrencyCalculator extends StatefulWidget {

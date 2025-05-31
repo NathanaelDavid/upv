@@ -332,7 +332,7 @@ class _LaporanJualPageState extends State<LaporanJualPage> {
             scrollDirection: Axis.horizontal,
             child: DataTable(
               columnSpacing: 20,
-              headingRowColor: MaterialStateColor.resolveWith(
+              headingRowColor: WidgetStateColor.resolveWith(
                   (states) => Theme.of(context).colorScheme.primaryContainer),
               columns: const [
                 DataColumn(

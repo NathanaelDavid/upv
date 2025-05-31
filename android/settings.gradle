@@ -17,12 +17,23 @@ pluginManagement {
 }
 
 plugins {
+    // Plugin loader untuk Flutter, biarkan versi ini dikelola oleh Flutter
     id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-    id "com.android.application" version "8.1.0" apply false
-    // START: FlutterFire Configuration
-    id "com.google.gms.google-services" version "4.3.15" apply false
-    // END: FlutterFire Configuration
-    id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+
+    // Android Gradle Plugin (AGP) - Versi disesuaikan dengan project-level build.gradle Anda
+    id "com.android.application" version "8.2.0" apply false
+
+    // Google Services Plugin - Versi disesuaikan
+    id "com.google.gms.google-services" version "4.4.2" apply false
+
+    // Kotlin Android Plugin - Versi disesuaikan
+    id "org.jetbrains.kotlin.android" version "1.9.23" apply false
 }
 
 include ":app"
+
+// Jika Anda memiliki modul plugin Flutter lokal (bukan dari pub.dev) yang perlu di-include secara manual,
+// Anda bisa menambahkannya di sini, contoh:
+// include ':nama_plugin_lokal'
+// project(':nama_plugin_lokal').projectDir = new File(settingsDir, '../nama_plugin_lokal')
+// Namun, untuk plugin dari pub.dev, Flutter plugin loader di atas akan menanganinya.

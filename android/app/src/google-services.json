@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "208016737211",
+    "project_id": "upv-database",
+    "storage_bucket": "upv-database.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:208016737211:android:84b088401e856921e53a9e",
+        "android_client_info": {
+          "package_name": "com.example.upv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdrJiB-IfO3Xh20UtJb0aJZNX47txMa98"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

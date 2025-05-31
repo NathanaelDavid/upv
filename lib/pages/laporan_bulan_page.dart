@@ -206,7 +206,7 @@ class _LaporanBulanPageState extends State<LaporanBulanPage> {
               dataRowMinHeight: currentDataRowMinHeight,
               dataRowMaxHeight: currentDataRowMaxHeight,
               headingTextStyle: headingStyle,
-              headingRowColor: MaterialStateColor.resolveWith((states) =>
+              headingRowColor: WidgetStateColor.resolveWith((states) =>
                   Theme.of(context)
                       .colorScheme
                       .primaryContainer
