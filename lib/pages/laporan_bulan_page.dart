@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
+// Import PDF generation packages
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart'; // Masih dibutuhkan untuk pw.MemoryImage dan lainnya
+import 'package:path_provider/path_provider.dart'; // Diperlukan untuk path penyimpanan
+import 'dart:io'; // Diperlukan untuk File
+
 class LaporanBulanPage extends StatefulWidget {
   const LaporanBulanPage({super.key});
 
@@ -124,6 +131,164 @@ class _LaporanBulanPageState extends State<LaporanBulanPage> {
     }
   }
 
+  // --- FUNGSI BARU: _generatePdf() ---
+  Future<void> _generatePdf() async {
+    setState(() {
+      isLoading = true; // Set loading saat membuat PDF
+    });
+
+    try {
+      final doc = pw.Document();
+      final monthLabel = DateFormat.yMMMM('id_ID').format(selectedMonth);
+
+      // Siapkan data untuk tabel PDF
+      final List<List<String>> tableData = [];
+      // Headers
+      tableData.add([
+        'Mata Uang',
+        'Jml Beli',
+        'Nominal Beli (Rp)',
+        'Jml Jual',
+        'Nominal Jual (Rp)',
+        'Stok Akhir'
+      ]);
+
+      // Rows
+      for (var data in rekapData) {
+        tableData.add([
+          (data['kode'] as String).toUpperCase(),
+          formatter.format(data['totalBeli']),
+          currencyFormatter.format(data['nominalBeli']),
+          formatter.format(data['totalJual']),
+          currencyFormatter.format(data['nominalJual']),
+          formatter.format(data['stokAkhir']),
+        ]);
+      }
+
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4.portrait,
+          build: (pw.Context context) {
+            return [
+              pw.Center(
+                child: pw.Text(
+                  'Laporan Rekapitulasi Transaksi Bulanan',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 16),
+              pw.Center(
+                child: pw.Text(
+                  'Bulan: $monthLabel',
+                  style: const pw.TextStyle(fontSize: 16),
+                ),
+              ),
+              pw.SizedBox(height: 24),
+              pw.Table.fromTextArray(
+                headers: tableData[0], // Gunakan baris pertama sebagai header
+                data: tableData.sublist(1), // Sisanya adalah data
+                border: pw.TableBorder.all(width: 0.5, color: PdfColors.black),
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 9, // Sesuaikan ukuran font header untuk PDF
+                  color: PdfColors.black,
+                ),
+                headerDecoration:
+                    const pw.BoxDecoration(color: PdfColors.grey300),
+                cellAlignment: pw.Alignment.centerRight,
+                cellPadding: const pw.EdgeInsets.all(4),
+                cellStyle: const pw.TextStyle(
+                  fontSize: 8, // Sesuaikan ukuran font cell untuk PDF
+                ),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(1.5), // Mata Uang
+                  1: const pw.FlexColumnWidth(1.5), // Jml Beli
+                  2: const pw.FlexColumnWidth(2), // Nominal Beli
+                  3: const pw.FlexColumnWidth(1.5), // Jml Jual
+                  4: const pw.FlexColumnWidth(2), // Nominal Jual
+                  5: const pw.FlexColumnWidth(1.5), // Stok Akhir
+                },
+              ),
+            ];
+          },
+        ),
+      );
+
+      // --- LOGIKA BARU: Menyimpan PDF ke perangkat ---
+      final String fileName =
+          "laporan_bulanan_${monthLabel.replaceAll(' ', '_').toLowerCase()}.pdf";
+      Directory? directory;
+
+      if (Theme.of(context).platform == TargetPlatform.android) {
+        // Untuk Android, coba gunakan getExternalStorageDirectory() atau getDownloadsDirectory()
+        // getApplicationDocumentsDirectory() juga bisa, tapi lebih privat
+        directory =
+            await getExternalStorageDirectory(); // Atau getDownloadsDirectory()
+        // Pastikan Anda menangani izin penyimpanan di AndroidManifest.xml
+      } else if (Theme.of(context).platform == TargetPlatform.iOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        // Untuk Web, Desktop (Linux, Windows, macOS)
+        // Printing.sharePdf() atau Printing.layoutPdf() mungkin lebih sesuai
+        // Jika ingin menyimpan, ini akan memicu dialog unduhan browser di web
+        // atau menyimpan ke direktori sementara di desktop.
+        // Untuk web, langsung Printing.sharePdf() sudah cukup memicu download di browser.
+        await Printing.sharePdf(bytes: await doc.save(), filename: fileName);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('PDF $fileName berhasil dibuat.')),
+          );
+        }
+        return; // Keluar dari fungsi karena sudah ditangani
+      }
+
+      if (directory != null) {
+        final filePath = '${directory.path}/$fileName';
+        final file = File(filePath);
+        await file.writeAsBytes(await doc.save());
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('PDF berhasil disimpan ke: $filePath'),
+              action: SnackBarAction(
+                label: 'Buka',
+                onPressed: () {
+                  // Tambahkan logika untuk membuka file atau folder
+                  // Ini bisa kompleks dan bergantung pada platform.
+                  // Misalnya: open_filex package atau platform-specific code
+                },
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Gagal mendapatkan direktori penyimpanan.')),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error generating PDF: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal membuat PDF: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final monthLabel = DateFormat.yMMMM('id_ID').format(selectedMonth);
@@ -161,13 +326,9 @@ class _LaporanBulanPageState extends State<LaporanBulanPage> {
         ),
       );
     } else {
-      // Perlebar maxTableSectionWidth untuk layar yang lebih besar
       const double maxTableSectionWidth = 1000.0;
 
-      // Properti tabel yang kondisional berdasarkan ukuran layar
-      // Perlebar columnSpacing dan cellPadding untuk non-mobile
-      final double currentColumnSpacing =
-          isMobileSize ? 10.0 : 24.0; // Diperlebar untuk non-mobile
+      final double currentColumnSpacing = isMobileSize ? 10.0 : 24.0;
       final double currentHeadingRowHeight = isMobileSize ? 48.0 : 56.0;
       final double currentDataRowMinHeight = isMobileSize ? 32.0 : 38.0;
       final double currentDataRowMaxHeight = isMobileSize ? 42.0 : 48.0;
@@ -175,20 +336,14 @@ class _LaporanBulanPageState extends State<LaporanBulanPage> {
       final TextStyle headingStyle = TextStyle(
         fontWeight: FontWeight.bold,
         color: Colors.black87,
-        fontSize: isMobileSize
-            ? 14
-            : 16, // Ukuran font non-mobile bisa sedikit lebih besar
+        fontSize: isMobileSize ? 14 : 16,
       );
       final TextStyle cellStyle = TextStyle(
-        fontSize: isMobileSize
-            ? 11
-            : 12, // Ukuran font non-mobile bisa sedikit lebih besar
+        fontSize: isMobileSize ? 11 : 12,
       );
-      // Perlebar cellPadding horizontal untuk non-mobile
       final EdgeInsets cellPadding = isMobileSize
           ? const EdgeInsets.symmetric(horizontal: 11.0, vertical: 5.0)
-          : const EdgeInsets.symmetric(
-              horizontal: 12.0, vertical: 6.0); // Diperlebar untuk non-mobile
+          : const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0);
 
       Widget recapColumn = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,6 +438,14 @@ class _LaporanBulanPageState extends State<LaporanBulanPage> {
       appBar: AppBar(
         title: const Text('Laporan Bulanan'),
         centerTitle: true,
+        actions: [
+          // --- Tombol untuk membuat PDF ---
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Buat Laporan PDF',
+            onPressed: rekapData.isEmpty || isLoading ? null : _generatePdf,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

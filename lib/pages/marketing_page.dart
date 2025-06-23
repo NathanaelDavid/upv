@@ -220,12 +220,14 @@ class MarketingPage extends StatelessWidget {
             ],
           ),
 
+          // --- Bagian CurrencyWidget, sekarang tanpa SizedBox tinggi tetap ---
           _buildSectionCard(
             context: context,
             title: 'Kurs Mata Uang Terkini',
             icon: Icons.trending_up_outlined,
-            children: [
-              const CurrencyWidget(), // Widget kurs mata uang
+            children: const [
+              // Menggunakan `const` karena CurrencyWidget juga const
+              CurrencyWidget(), // CurrencyWidget akan menentukan tingginya sendiri berdasarkan konten
             ],
           ),
 
@@ -234,7 +236,8 @@ class MarketingPage extends StatelessWidget {
             title: 'Galeri Perusahaan',
             icon: Icons.photo_library_outlined,
             children: [
-              LayoutBuilder(// LayoutBuilder untuk galeri agar adaptif
+              LayoutBuilder(
+                  // LayoutBuilder untuk galeri agar adaptif
                   builder: (context, constraints) {
                 int crossAxisCount = 2;
                 double childAspectRatio = 1.0; // Persegi

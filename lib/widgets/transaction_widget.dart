@@ -1,8 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Required for TextInputFormatter
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Untuk Timestamp.fromDate()
 import '../models/transaksi_models.dart';
 import '../util/transaksi_service.dart';
+
+// Helper class to enforce lowercase input
+class LowerCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return newValue.copyWith(text: newValue.text.toLowerCase());
+  }
+}
 
 class TransactionWidget extends StatefulWidget {
   const TransactionWidget({super.key});
@@ -15,7 +25,6 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   List<TransaksiPublic> transaksiList = [];
   final TransaksiService _transaksiService = TransaksiService();
 
-  // KEMBALIKAN: _tanggalController diperlukan lagi
   final TextEditingController _tanggalController = TextEditingController();
   final TextEditingController _jumlahController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
@@ -45,14 +54,13 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   @override
   void initState() {
     super.initState();
-    // ISI OTOMATIS: Tanggal hari ini saat widget pertama kali dimuat
+    // Isi otomatis: Tanggal hari ini saat widget pertama kali dimuat
     _tanggalController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _fetchDataFromFirestore();
   }
 
   @override
   void dispose() {
-    // KEMBALIKAN: _tanggalController.dispose();
     _tanggalController.dispose();
     _jumlahController.dispose();
     _rateController.dispose();
@@ -89,7 +97,6 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   }
 
   void _addOrUpdateTransaksi() async {
-    // KEMBALIKAN: Validasi untuk tanggal
     if (_tanggalController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tanggal harus diisi')),
@@ -109,15 +116,17 @@ class _TransactionWidgetState extends State<TransactionWidget> {
       return;
     }
 
-    // KEMBALIKAN: Parsing tanggal dari controller
     DateTime parsedDate;
     try {
-      parsedDate =
+      final dateOnly =
           DateFormat('yyyy-MM-dd').parseStrict(_tanggalController.text);
+      final now = DateTime.now();
+      parsedDate = DateTime(dateOnly.year, dateOnly.month, dateOnly.day,
+          now.hour, now.minute, now.second);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Format tanggal tidak valid. Gunakan yyyy-MM-dd')),
+            content: Text('Format tanggal tidak valid. Gunakan YYYY-MM-DD')),
       );
       return;
     }
@@ -137,9 +146,8 @@ class _TransactionWidgetState extends State<TransactionWidget> {
     }
     final nominal = jumlah * rate;
 
-    // Map sekarang selalu menyertakan timestamp dari controller
     Map<String, dynamic> transaksiData = {
-      "timestamp": Timestamp.fromDate(parsedDate), // Selalu dari controller
+      "timestamp": Timestamp.fromDate(parsedDate),
       "kode_mata_uang": mataUang,
       "kode_transaksi": _kodeTransaksi,
       "jumlah_barang": jumlah,
@@ -162,7 +170,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
             originalEditingId, transaksiData);
       }
 
-      _clearForm(); // Ini akan mengisi tanggal dengan hari ini
+      _clearForm();
       await _fetchDataFromFirestore();
 
       if (mounted) {
@@ -192,7 +200,6 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   void _editTransaksi(TransaksiPublic transaksi) {
     if (!mounted) return;
     setState(() {
-      // KEMBALIKAN: Isi _tanggalController dengan tanggal transaksi yang diedit
       _tanggalController.text =
           DateFormat('yyyy-MM-dd').format(transaksi.timestamp.toDate());
 
@@ -215,9 +222,9 @@ class _TransactionWidgetState extends State<TransactionWidget> {
         });
       }
 
-      _jumlahController.text =
-          transaksi.jumlahBarang.toString().replaceAll('.', ',');
-      _rateController.text = transaksi.harga.toString().replaceAll('.', ',');
+      _jumlahController.text = _qtyFormatter.format(transaksi.jumlahBarang);
+      _rateController.text = transaksi.harga
+          .toString(); // Keep it as string, not formatted to allow editing
       _nominalController.text = _formatter.format(transaksi.totalNominal);
       _kodeTransaksi = transaksi.kodeTransaksi;
       _editingId = transaksi.id;
@@ -281,16 +288,12 @@ class _TransactionWidgetState extends State<TransactionWidget> {
   }
 
   void _clearForm() {
-    // KEMBALIKAN: _tanggalController.clear();
-    _tanggalController.clear();
+    _tanggalController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _jumlahController.clear();
     _rateController.clear();
     _nominalController.clear();
     if (mounted) {
       setState(() {
-        // ISI OTOMATIS: Tanggal hari ini setelah form dibersihkan
-        _tanggalController.text =
-            DateFormat('yyyy-MM-dd').format(DateTime.now());
         _selectedMataUang = null;
         _kodeTransaksi = 'Beli';
         _editingId = null;
@@ -298,17 +301,15 @@ class _TransactionWidgetState extends State<TransactionWidget> {
     }
   }
 
-  // KEMBALIKAN: Metode _selectDate()
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      // Coba parse tanggal yang ada di controller, jika gagal atau kosong, gunakan hari ini
       initialDate: _tanggalController.text.isNotEmpty
           ? (DateFormat('yyyy-MM-dd').tryParse(_tanggalController.text) ??
               DateTime.now())
           : DateTime.now(),
       firstDate: DateTime(2000),
-      lastDate: DateTime(2101), // Bisa disesuaikan
+      lastDate: DateTime(2101),
     );
     if (picked != null && mounted) {
       setState(() {
@@ -334,10 +335,9 @@ class _TransactionWidgetState extends State<TransactionWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // KEMBALIKAN: TextField untuk tanggal
         TextField(
           controller: _tanggalController,
-          readOnly: true, // Tetap readOnly, diedit via date picker
+          readOnly: true,
           onTap: () => _selectDate(context),
           decoration: InputDecoration(
             labelText: 'Tanggal Transaksi',
@@ -349,8 +349,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
             ),
           ),
         ),
-        const SizedBox(height: 12), // SizedBox terkait dikembalikan
-
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -477,8 +476,11 @@ class _TransactionWidgetState extends State<TransactionWidget> {
       );
     }
     return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+      // Hapus shrinkWrap dan physics untuk memungkinkan scrolling normal
+      // di dalam Expanded/Flexible yang sesuai.
+      // Jika list ada di dalam SingleChildScrollView, maka ListView.builder ini
+      // harus memiliki shrinkWrap: true dan NeverScrollableScrollPhysics().
+      // Kita akan membuat penyesuaian ini di bagian `build` metode ini.
       itemCount: transaksiList.length,
       itemBuilder: (context, index) {
         final transaksi = transaksiList[index];
@@ -495,7 +497,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    'Tanggal: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(transaksi.timestamp.toDate())}'),
+                    'Tanggal: ${DateFormat('dd MMM.yyyy, HH:mm', 'id_ID').format(transaksi.timestamp.toDate())}'),
                 Text(
                     'Jumlah: ${_qtyFormatter.format(transaksi.jumlahBarang)} ${transaksi.kodeMataUang.toUpperCase()}'),
                 Text('Rate: ${_formatter.format(transaksi.harga)}'),
@@ -530,6 +532,7 @@ class _TransactionWidgetState extends State<TransactionWidget> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             if (constraints.maxWidth > 700) {
+              // Desktop layout (Row with two Expanded sections)
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -547,11 +550,23 @@ class _TransactionWidgetState extends State<TransactionWidget> {
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 3,
-                    child: _buildTransactionList(),
+                    child: Material(
+                      // Wrap list in Material for consistent styling
+                      elevation: 2.0,
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(
+                            8.0), // Add some padding inside the Material card
+                        // The ListView.builder should now scroll within this Expanded region
+                        child:
+                            _buildTransactionList(), // ListView.builder here, no extra SingleChildScrollView
+                      ),
+                    ),
                   ),
                 ],
               );
             } else {
+              // Mobile layout (Column wrapped in SingleChildScrollView)
               return SingleChildScrollView(
                 child: Column(
                   children: [
@@ -573,7 +588,58 @@ class _TransactionWidgetState extends State<TransactionWidget> {
                               .titleMedium
                               ?.copyWith(fontWeight: FontWeight.bold)),
                     ),
-                    _buildTransactionList(),
+                    // --- PERBAIKAN: Gunakan ListView.builder dengan shrinkWrap di sini ---
+                    // For mobile, the parent is SingleChildScrollView, so the ListView needs
+                    // to limit its height and allow the parent to scroll.
+                    ListView.builder(
+                      shrinkWrap: true, // Crucial for nested scrolling
+                      physics:
+                          const NeverScrollableScrollPhysics(), // Defer scrolling to parent
+                      itemCount: transaksiList.length,
+                      itemBuilder: (context, index) {
+                        final transaksi = transaksiList[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 4.0, horizontal: 0),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 8.0),
+                            title: Text(
+                              '${transaksi.kodeTransaksi} ${transaksi.kodeMataUang.toUpperCase()}',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                    'Tanggal: ${DateFormat('dd MMM.yyyy, HH:mm', 'id_ID').format(transaksi.timestamp.toDate())}'),
+                                Text(
+                                    'Jumlah: ${_qtyFormatter.format(transaksi.jumlahBarang)} ${transaksi.kodeMataUang.toUpperCase()}'),
+                                Text(
+                                    'Rate: ${_formatter.format(transaksi.harga)}'),
+                                Text(
+                                    'Total: ${_formatter.format(transaksi.totalNominal)}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.redAccent),
+                              tooltip: 'Hapus Transaksi',
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => _confirmDeleteTransaksi(transaksi.id),
+                            ),
+                            onTap: _isLoading
+                                ? null
+                                : () => _editTransaksi(transaksi),
+                            isThreeLine: true,
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               );

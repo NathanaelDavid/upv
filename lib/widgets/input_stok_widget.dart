@@ -38,6 +38,8 @@ class _InputStokWidgetState extends State<InputStokWidget> {
   @override
   void initState() {
     super.initState();
+    // --- PERBAIKAN 1: Setel tanggal hari ini saat inisialisasi ---
+    _tanggalController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _fetchData();
     _fetchMataUangList();
   }
@@ -92,12 +94,12 @@ class _InputStokWidgetState extends State<InputStokWidget> {
   }
 
   void _clearForm() {
-    _tanggalController.clear();
-    _kodeMataUangController.clear(); // This will be lowercase
+    // --- PERBAIKAN 2: Setel tanggal hari ini saat membersihkan formulir ---
+    _tanggalController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    _kodeMataUangController.clear();
     _hargaBeliController.clear();
     _hargaJualController.clear();
     setState(() {
-      // Ensure UI reflects _editingId change
       _editingId = null;
     });
   }
@@ -105,6 +107,7 @@ class _InputStokWidgetState extends State<InputStokWidget> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
+      // --- PERBAIKAN 3: initialDate selalu hari ini ---
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
@@ -118,7 +121,6 @@ class _InputStokWidgetState extends State<InputStokWidget> {
     if (!mounted) return;
     try {
       final tanggal = _tanggalController.text;
-      // _kodeMataUangController.text is already lowercase due to formatter and selection logic
       final kodeMataUang = _kodeMataUangController.text;
       final hargaBeli = double.tryParse(_hargaBeliController.text);
       final hargaJual = double.tryParse(_hargaJualController.text);
@@ -134,7 +136,7 @@ class _InputStokWidgetState extends State<InputStokWidget> {
       }
 
       final stock = StockCreate(
-        kodeMataUang: kodeMataUang, // Already lowercase
+        kodeMataUang: kodeMataUang,
         hargaBeli: hargaBeli,
         hargaJual: hargaJual,
         tanggal: Timestamp.fromDate(DateTime.parse(tanggal)),
@@ -146,8 +148,8 @@ class _InputStokWidgetState extends State<InputStokWidget> {
         await _stokService.updateStock(_editingId!, stock);
       }
 
-      await _fetchData(); // Refreshes stokList
-      _clearForm();
+      await _fetchData();
+      _clearForm(); // Panggil _clearForm untuk mereset input, termasuk tanggal ke hari ini
       widget.onStokChanged();
 
       if (!mounted) return;
@@ -170,7 +172,6 @@ class _InputStokWidgetState extends State<InputStokWidget> {
     setState(() {
       _tanggalController.text =
           DateFormat('yyyy-MM-dd').format(stok.tanggal.toDate());
-      // Assuming stok.kodeMataUang from StokService is already lowercase
       _kodeMataUangController.text = stok.kodeMataUang;
       _hargaBeliController.text = stok.hargaBeli.toString();
       _hargaJualController.text = stok.hargaJual.toString();
@@ -209,7 +210,7 @@ class _InputStokWidgetState extends State<InputStokWidget> {
     if (!mounted) return;
     try {
       await _stokService.deleteStock(id);
-      await _fetchData(); // Refreshes stokList
+      await _fetchData();
       widget.onStokChanged();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -251,43 +252,23 @@ class _InputStokWidgetState extends State<InputStokWidget> {
                 });
               },
               onSelected: (String selection) {
-                // _mataUangList is already lowercase, so selection is lowercase
                 setState(() {
-                  // Use setState to ensure UI updates if dependent widgets need it
                   _kodeMataUangController.text = selection;
                 });
               },
               fieldViewBuilder: (context, textEditingController, focusNode,
                   onFieldSubmitted) {
-                // Sync from _kodeMataUangController to the field when builder runs
-                // This ensures that if _kodeMataUangController is set (e.g. by _editStok or onSelected),
-                // the field reflects this value.
                 if (textEditingController.text !=
                     _kodeMataUangController.text) {
                   textEditingController.value =
                       textEditingController.value.copyWith(
-                    text: _kodeMataUangController
-                        .text, // This should be lowercase
+                    text: _kodeMataUangController.text,
                     selection: TextSelection.fromPosition(TextPosition(
                         offset: _kodeMataUangController.text.length)),
                   );
                 }
 
-                // Listener to update _kodeMataUangController from the field's input
-                // This listener is on Autocomplete's internal controller.
-                // The LowerCaseTextFormatter will ensure textEditingController.text is lowercase.
-                // Adding/removing listeners here can be complex. The formatter simplifies things.
-                // The existing listener pattern in the original code:
-                // textEditingController.removeListener(_syncKodeMataUangFromField); // Hypothetical removal
-                // _syncKodeMataUangFromField = () { ... }; // Hypothetical assignment
-                // textEditingController.addListener(_syncKodeMataUangFromField);
-                // For simplicity, we rely on the formatter and the sync at the beginning of fieldViewBuilder.
-                // If direct typing needs to update _kodeMataUangController immediately without selection:
-                // One simple way is to use onFieldSubmitted or handle it via the TextField's onChanged if Autocomplete allowed direct TextField customization.
-                // With current Autocomplete, the formatter is key.
-                // The original listener:
                 textEditingController.addListener(() {
-                  // If the formatter is active, textEditingController.text will be lowercase.
                   if (_kodeMataUangController.text !=
                       textEditingController.text) {
                     _kodeMataUangController.text = textEditingController.text;
@@ -300,11 +281,8 @@ class _InputStokWidgetState extends State<InputStokWidget> {
                   decoration: const InputDecoration(
                       labelText: 'Kode Mata Uang',
                       border: OutlineInputBorder()),
-                  inputFormatters: [
-                    LowerCaseTextFormatter()
-                  ], // Ensures input is lowercase
-                  onSubmitted: (_) =>
-                      onFieldSubmitted(), // Call onFieldSubmitted if user presses done
+                  inputFormatters: [LowerCaseTextFormatter()],
+                  onSubmitted: (_) => onFieldSubmitted(),
                 );
               },
             ),
@@ -364,9 +342,7 @@ class _InputStokWidgetState extends State<InputStokWidget> {
                       margin: const EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 5.0),
                       child: ListTile(
-                        title: Text(
-                            stok.kodeMataUang
-                                .toUpperCase(), // Display as uppercase for readability
+                        title: Text(stok.kodeMataUang.toUpperCase(),
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
@@ -390,42 +366,32 @@ class _InputStokWidgetState extends State<InputStokWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Use a fixed height or allow it to be flexible based on parent constraints.
-    // The SizedBox with a percentage of screen height might be too restrictive on mobile
-    // if content overflows. Consider removing it or making it conditional.
-    // For now, keeping it as per original structure.
     return SizedBox(
       height:
           MediaQuery.of(context).size.height * 0.85, // Adjusted height slightly
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Define a breakpoint for mobile layout
           bool isMobile = constraints.maxWidth < 600;
 
           if (isMobile) {
-            // Mobile layout: Form on top, List below
             return Column(
               children: [
-                _buildFormSection(
-                    context), // This section will scroll if content is too long
+                _buildFormSection(context),
                 const Divider(height: 1),
-                Expanded(
-                    child: _buildListSection(
-                        context)), // List takes remaining space
+                Expanded(child: _buildListSection(context)),
               ],
             );
           } else {
-            // Desktop layout: Form on left, List on right
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
-                  flex: 2, // Form takes 2 parts of the space
+                  flex: 2,
                   child: _buildFormSection(context),
                 ),
                 const VerticalDivider(width: 1),
                 Flexible(
-                  flex: 3, // List takes 3 parts of the space
+                  flex: 3,
                   child: _buildListSection(context),
                 ),
               ],
